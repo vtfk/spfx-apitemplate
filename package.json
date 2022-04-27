@@ -17,6 +17,7 @@
     "axios": "^0.27.1",
     "handlebars": "^4.7.7",
     "lodash": "^4.17.21",
+    "nanoid": "^3.3.3",
     "office-ui-fabric-react": "7.174.1",
     "react": "16.13.1",
     "react-dom": "16.13.1",

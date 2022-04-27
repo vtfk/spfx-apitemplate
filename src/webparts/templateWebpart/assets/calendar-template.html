@@ -1,4 +1,3 @@
-
 <content type="x-head">
   <script>
     var calendarHasBeenLoaded = calendarHasBeenLoaded || false;
@@ -35,12 +34,6 @@
 
     function handleJQuery () {
       $(document).ready(function () {
-        if(calendarHasBeenLoaded) {
-          // alert('Calendar has already been loaded');
-          return;
-        }
-        calendarHasBeenLoaded = true;
-
         if ($("div.valo-events .tabs-nav li.active").length === 0) {
           $('.tabs-nav li:first-child').addClass('active');
         }
@@ -66,7 +59,11 @@
           if($(this).data('calendar-type') === "Personlig") window.open($(this).data('href'), '_blank');
         })
         
-        calendarHasBeenLoaded = true;
+        
+        if(calendarHasBeenLoaded) {
+          // alert('Calendar has already been loaded');
+          return;
+        }
         function removeEndedEvents() {
           let now = new Date();
           let events = $("div.calendar-events");
@@ -82,6 +79,7 @@
 
         setInterval(removeEndedEvents, 10000);
         removeEndedEvents();
+        calendarHasBeenLoaded = true;
       })
     }
 
@@ -148,12 +146,6 @@
       }
     });
   </script>
-</content>
-
-<content type="x-metadata">
-  {
-  "totalResults": 3
-  }
 </content>
 
 <content type="x-template">
@@ -510,7 +502,7 @@
                 {{#if (cond isAllDay "&&" (cond (dateDiff (concat start.dateTime "Z") (concat end.dateTime "Z")) "===" "1")) }}
                 <div class="event-date-box">
                   <span class="valo-events__item__event-day event-date-single">
-                    {{ moment start.dateTime format="DD" }}
+                    {{ moment start.dateTime format="DD.MM" }}
                   </span>
                   <span class="valo-events__item__event-month event-month-single">
                     {{ moment end.dateTime format="DD.MM" }}
@@ -522,7 +514,7 @@
                     {{ moment start.dateTime format="DD" }}
                   </span>
                   <span class="valo-events__item__event-startmonth event-month">
-                    {{ moment end.dateTime format="MM" }}
+                    {{ moment end.dateTime format="DD.MM" }}
                   </span>
                 </div>
 
@@ -531,16 +523,16 @@
                 <div class="event-date-box">
                   <div class="valo-events__item__event-endday event-date">
                     {{#if isAllDay}}
-                    {{ moment start.dateTime format="DD.MM.YYYY" }}
+                    {{ moment start.dateTime format="DD.MM" }}
                     {{else}}
-                    {{ moment start.dateTime format="DD.MM.YYYY" }}
+                    {{ moment start.dateTime format="DD.MM" }}
                     {{/if}}
                   </div>
                   <div class="valo-events__item__event-endmonth event-month">
                     {{#if isAllDay}}
-                    {{ moment end.dateTime format="DD.MM.YYYY" }}
+                    {{ moment end.dateTime format="DD.MM" }}
                     {{else}}
-                    {{ moment end.dateTime format="DD.MM.YYYY" }}
+                    {{ moment end.dateTime format="DD.MM" }}
                     {{/if}}
                   </div>
                 </div>
@@ -590,12 +582,3 @@
     {{ log dsData }}
   </div>
 </content>
-
-<head>
-  <!--[if gte mso 9]><xml>
-<mso:CustomDocumentProperties>
-<mso:TemplateTitle msdt:dt="string">Calendar event tabs</mso:TemplateTitle>
-<mso:DataSource msdt:dt="string">MicrosoftGraphDataSource</mso:DataSource>
-</mso:CustomDocumentProperties>
-</xml><![endif]-->
-</head>

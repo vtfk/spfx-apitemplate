@@ -24,8 +24,8 @@
     "properties": {
       "type": "anonymous",
       "method": "get",
-      "dataUrl": "http://asdasd.com",
-      "debug": false
+      "dataUrl": "https://api.vtfk.no/my-calendar/v1/mock/me/tabs",
+      "debug": true
     }
   }]
 }
