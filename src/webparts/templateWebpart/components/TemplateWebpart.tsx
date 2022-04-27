@@ -105,7 +105,7 @@ export default class TemplateWebpart extends React.Component<ITemplateWebpartPro
       if(!this.props.oauthClientId) errors.push('oauthClientId must be provided when authentication oauth is used');
       if(!this.props.oauthAuthorityUrl) errors.push('oauthAuthorityUrl must be provided when authentication oauth is used');
       if(!this.props.oauthScopes) errors.push('oauthScopes must be provided when authentication oauth is used');
-      if(!urlRegex.test(this.props.oauthAuthorityUrl)) errors.push('oauthAuthorityUrl is not in a valid url format');
+      // if(!urlRegex.test(this.props.oauthAuthorityUrl)) errors.push('oauthAuthorityUrl is not in a valid url format');
     }
     if(!this.props.dataUrl) errors.push('dataUrl must be provided');
     // if(this.props.dataUrl && !urlRegex.test(this.props.dataUrl)) errors.push('dataUrl is not in a valid url format');
@@ -389,7 +389,7 @@ export default class TemplateWebpart extends React.Component<ITemplateWebpartPro
   }
 
   public render(): React.ReactElement<ITemplateWebpartProps> {
-    if(this.allErrors().length > 0) {
+    if(this.allErrors().length > 0 && !this.props.mockLoading && !this.props.mockAuthenticating) {
       return (
         <div className={styles.error} style={this.baseStyle()}>
           <h2>Feil har oppstått ({this.allErrors().length})</h2>
