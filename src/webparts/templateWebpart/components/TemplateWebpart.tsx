@@ -358,7 +358,7 @@ export default class TemplateWebpart extends React.Component<ITemplateWebpartPro
     }
 
     return (
-      <section className={`${styles.templateWebpart}`}>
+      <section className={`${styles.templateWebpart}`} style={this.baseStyle()}>
         <div>
           <div dangerouslySetInnerHTML={{__html: this.state.html || ''}} />
         </div>
