@@ -90,6 +90,17 @@ export default class TemplateWebpartWebPart extends BaseClientSideWebPart<ITempl
       }
     ]
 
+    const loadingTypes = [
+      {
+        key: 'pinner',
+        text: 'Spinner'
+      },
+      {
+        key: 'skeleton',
+        text: 'Skeleton'
+      }
+    ]
+
     /*
       Groups
     */
@@ -124,11 +135,7 @@ export default class TemplateWebpartWebPart extends BaseClientSideWebPart<ITempl
             multiline: true,
             resizable: true,
             description: 'Request body'
-          }),
-          PropertyPaneButton('save', {
-            text: 'Save',
-            onClick: () => { console.log('Clicked') }
-          }),
+          })
         ]
       },
       {
@@ -149,9 +156,17 @@ export default class TemplateWebpartWebPart extends BaseClientSideWebPart<ITempl
         ]
       },
       {
-        groupName: 'Loading template',
+        groupName: 'Loading',
         isCollapsed: true,
         groupFields: [
+          PropertyPaneDropdown('loadingType', { 
+            label: 'Type',
+            options: loadingTypes,
+            selectedKey: 'get'
+          }),
+          PropertyPaneToggle('mockLoading', {
+            label: 'Loading',
+          }),
           PropertyPaneTextField('loadingTemplateUrl', {
             label: 'Template URL',
             description: 'Url of template to override loading'
@@ -166,7 +181,7 @@ export default class TemplateWebpartWebPart extends BaseClientSideWebPart<ITempl
         ]
       },
       {
-        groupName: 'Error template',
+        groupName: 'Error',
         isCollapsed: true,
         groupFields: [
           PropertyPaneTextField('errorTemplateUrl', {
@@ -179,6 +194,20 @@ export default class TemplateWebpartWebPart extends BaseClientSideWebPart<ITempl
             multiline: true,
             resizable: true,
             description: 'Template text for overriding error'
+          })
+        ]
+      },
+      {
+        groupName: 'Visual',
+        isCollapsed: true,
+        groupFields: [
+          PropertyPaneTextField('minHeight', {
+            label: 'Minumum height',
+            description: 'The minimum height of the webpart'
+          }),
+          PropertyPaneTextField('maxHeight', {
+            label: 'Maximum height',
+            description: 'The maximum height of the webpartr'
           })
         ]
       },

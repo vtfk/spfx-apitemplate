@@ -13,7 +13,11 @@ export interface ITemplateWebpartProps {
   templateString: string;
   errorTemplateUrl: string,
   errorTemplateString: string,
+  loadingType: string,
+  mockLoading: boolean,
   loadingTemplateUrl: string,
   loadingTemplateString: string,
+  minHeight: string,
+  maxHeight: string,
   debug: boolean;
 }

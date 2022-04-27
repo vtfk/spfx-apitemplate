@@ -8,6 +8,8 @@ import handlebars from 'handlebars';
 import template from './Template.js'
 import { nanoid } from 'nanoid';
 import axios, { AxiosRequestConfig } from 'axios';
+import ContentLoader, { Facebook } from 'react-content-loader'
+import { Shimmer, Spinner, SpinnerSize } from 'office-ui-fabric-react';
 
 export interface ITemplateWebpartState {
   id: string,
@@ -58,6 +60,7 @@ export default class TemplateWebpart extends React.Component<ITemplateWebpartPro
   // Runs data for the components updates and triggers a re-render
   componentDidUpdate = async (prevProps : ITemplateWebpartProps, prevState : ITemplateWebpartState) => {
     this.debug('=== Webpart Updated ===');
+    this.debug('PrevProps', prevProps)
     this.debug('Props', this.props)
     this.debug('State', this.state)
 
@@ -67,7 +70,7 @@ export default class TemplateWebpart extends React.Component<ITemplateWebpartPro
   /*
     Functions
   */
-  debug(...args) {
+  debug(...args : any[]) {
     if(!this.props?.debug) return;
     console.log(...args)
   }
@@ -86,7 +89,7 @@ export default class TemplateWebpart extends React.Component<ITemplateWebpartPro
     return isAllEqual;
   }
 
-  private async validateProps (props) {
+  private async validateProps (props : ITemplateWebpartProps) {
     const errors = [];
 
     if(!this.props.type) errors.push('type must be provided');
@@ -114,8 +117,8 @@ export default class TemplateWebpart extends React.Component<ITemplateWebpartPro
     /*
       If there are errors, just return
     */
-    if(this.state.error) return;
-    if(this.state.isLoading) return;
+    // if(this.state.error) return;
+    if(this.state.isLoading || this.props.mockLoading) return;
 
     /*
       Validate the properties
@@ -151,11 +154,10 @@ export default class TemplateWebpart extends React.Component<ITemplateWebpartPro
     const mustFetchData = !this.isAllEqual(this.props, prevProps, ['dataUrl', 'method', 'headers', 'body']) || this.state.data === undefined;
 
     // Check if rerender is required
-    const mustRerender = !this.isAllEqual(this.props, prevProps, ['templateUrl', 'templateString']) || mustAuthenticate || mustFetchData
+    const mustRerender = !this.isAllEqual(this.props, prevProps, ['templateUrl', 'templateString', 'minHeight', 'maxHeight']) || mustAuthenticate || mustFetchData
 
-
-    if(isEqual(prevProps, this.props) && isEqual(prevState, this.state)) {
-      this.debug('Both previous and current state and props are identical, returning early');
+    if(isEqual(prevProps, this.props)) {
+      this.debug('The current and previous props are identical, no actions needed');
       return;
     }
 
@@ -293,10 +295,31 @@ export default class TemplateWebpart extends React.Component<ITemplateWebpartPro
     }
 
     this.debug('Fetching data from: ' + options.dataUrl)
-
     this.setState({ isLoading: true })
     const { data } = await axios.request(request);
+    this.debug('Received data', data);
     return data;
+  }
+
+
+  /*
+    Rendering
+  */
+  private allErrors() {
+    const errors = [...this.state.propErrors];
+    if(this.state.error && this.state.error !== {}) errors.push(this.state.error);
+
+    return errors;
+  }
+
+  private baseStyle() : React.CSSProperties {
+    const style : React.CSSProperties = {};
+    if(this.props.minHeight) style.minHeight = this.props.minHeight;
+    if(this.props.maxHeight) {
+      style.maxHeight = this.props.maxHeight;
+      style.overflow = 'auto';
+    }
+    return style;
   }
 
   public render(): React.ReactElement<ITemplateWebpartProps> {
@@ -306,16 +329,16 @@ export default class TemplateWebpart extends React.Component<ITemplateWebpartPro
       debug
     } = this.props;
 
-    if(this.state.propErrors.length > 0 || this.state.error) {
+    if(this.allErrors().length > 0) {
       return (
-        <div>
-          Fant { [...this.state.propErrors, this.state.error] } feil
+        <div className={styles.error} style={this.baseStyle()}>
+          <h2>Feil har oppstått ({this.allErrors().length})</h2>
           <ul>
             {
-              [...this.state.propErrors, this.state.error].map((i, index) => {
+              this.allErrors().map((i, index) => {
                 return(
                   <li key={index}>
-                    { i || 'Ukjent feil' }
+                    <b>{ i || 'Ukjent feil, se logg' }</b>
                   </li>
                 )
               })
@@ -325,11 +348,12 @@ export default class TemplateWebpart extends React.Component<ITemplateWebpartPro
       )
     }
 
-    if(this.state.isLoading) {
-      return(
-        <>
-          <h1>Loading</h1>
-        </>
+    if(this.state.isLoading || this.props.mockLoading) {
+      return (
+        <div className={styles.loading} style={this.baseStyle()}>
+          { this.props.loadingType === 'spinner' && <Spinner size={SpinnerSize.large} />}
+          { this.props.loadingType === 'skeleton' && <Shimmer height="200px" width="100%" style={{width: '100%'}} />}
+        </div>
       )
     }
 
