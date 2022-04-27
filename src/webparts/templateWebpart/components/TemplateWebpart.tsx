@@ -148,10 +148,10 @@ export default class TemplateWebpart extends React.Component<ITemplateWebpartPro
     else if(this.props.type === 'oauth')  mustAuthenticate = !this.isAllEqual(this.props, prevProps, ['type', 'oauthClientId', 'oauthAuthorityUrl', 'oauthScopes']);
     
     // Check if data must be retreived
-    const mustFetchData = !this.isAllEqual(this.props, prevProps, ['dataUrl']) || this.state.data === undefined;
+    const mustFetchData = !this.isAllEqual(this.props, prevProps, ['dataUrl', 'method', 'headers', 'body']) || this.state.data === undefined;
 
     // Check if rerender is required
-    const mustRerender = !this.isAllEqual(this.props, prevProps, ['templateUrl', 'templateString']) || mustAuthenticate
+    const mustRerender = !this.isAllEqual(this.props, prevProps, ['templateUrl', 'templateString']) || mustAuthenticate || mustFetchData
 
 
     if(isEqual(prevProps, this.props) && isEqual(prevState, this.state)) {
