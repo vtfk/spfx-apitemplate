@@ -1,11 +1,11 @@
 export default `
-<content type="x-inject">
+<content type="x-head">
   <script type="text/javascript" charset="utf-8" async>
     //alert('Jæddæ');
   </script>
 </content>
 
-<content type="x-inject">
+<content type="x-head">
 <script>
 //begin main function
 /*$(document).ready(function () {
@@ -53,10 +53,70 @@ export default `
 </script>
 </content>
 
-<content type="x-setup">
+<content type="x-inject">
   <script>
-    console.log('Tjaaaaaa');
-    x = 100;
+  Handlebars.registerHelper('customlog', function (dsData) {
+    console.log('dsdata', dsData);
+  });
+
+  Handlebars.registerHelper('concat', function (firstpart, secondpart) {
+    return firstpart + secondpart;
+  });
+
+  Handlebars.registerHelper('print_id', function (tabName = "") {
+    return tabName.split(" ").join("");
+  });
+
+  Handlebars.registerHelper('removeDottAsync', async function (textPromise) {
+    const text = await textPromise
+    return text.replace(".", "");
+  });
+
+  Handlebars.registerHelper('subtractDays', function (dateString, days) {
+    const date = new Date(dateString)
+    const subtracted = date.getTime() - (1000 * 3600 * 24 * days)
+    return (new Date(subtracted)).toISOString()
+  });
+
+  Handlebars.registerHelper('dateDiff', function (startDate, endDate) {
+    const diff = (new Date(endDate)) - (new Date(startDate));
+    const daysDifference = diff / (1000 * 3600 * 24)
+
+    // Return diff in days
+    return daysDifference;
+  });
+
+  Handlebars.registerHelper('meetingTimeDays', function (startDate, endDate) {
+    const diff = (new Date(endDate)) - (new Date(startDate));
+    const days = Math.floor(diff / (1000 * 3600 * 24))
+
+    if (days === 1) return "Hele dagen"
+    return days + ' hele dager'
+  });
+
+  Handlebars.registerHelper('cond', function (v1, operator, v2) {
+    if (operator === '==') {
+      return (v1 == v2);
+    } else if (operator === '===') {
+      return (v1 === v2);
+    } else if (operator === '!=') {
+      return (v1 != v2);
+    } else if (operator === '!==') {
+      return (v1 !== v2);
+    } else if (operator === '<') {
+      return (v1 < v2);
+    } else if (operator === '<=') {
+      return (v1 <= v2);
+    } else if (operator === '>') {
+      return (v1 > v2);
+    } else if (operator === '>=') {
+      return (v1 >= v2);
+    } else if (operator === '&&') {
+      return (v1 && v2);
+    } else if (operator === '||') {
+      return (v1 || v2);
+    }
+  });
   </script>
 </content>
 

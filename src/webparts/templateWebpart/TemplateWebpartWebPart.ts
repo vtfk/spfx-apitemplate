@@ -15,14 +15,14 @@ import { IReadonlyTheme } from '@microsoft/sp-component-base';
 import * as strings from 'TemplateWebpartWebPartStrings';
 import TemplateWebpart from './components/TemplateWebpart';
 import { ITemplateWebpartProps } from './components/ITemplateWebpartProps';
+import Handlebars from 'handlebars';
+import handlebarHelpers from '../../lib/handlebar-helpers'
 
 export default class TemplateWebpartWebPart extends BaseClientSideWebPart<ITemplateWebpartProps> {
 
-  private _isDarkTheme: boolean = false;
-  private _environmentMessage: string = '';
-
   protected onInit(): Promise<void> {
-    this._environmentMessage = this._getEnvironmentMessage();
+    // Register Handlebars helpers
+    Handlebars.registerHelper(handlebarHelpers)
 
     return super.onInit();
   }
@@ -34,29 +34,6 @@ export default class TemplateWebpartWebPart extends BaseClientSideWebPart<ITempl
     );
 
     ReactDom.render(element, this.domElement);
-  }
-
-  private _getEnvironmentMessage(): string {
-    if (!!this.context.sdks.microsoftTeams) { // running in Teams
-      return this.context.isServedFromLocalhost ? strings.AppLocalEnvironmentTeams : strings.AppTeamsTabEnvironment;
-    }
-
-    return this.context.isServedFromLocalhost ? strings.AppLocalEnvironmentSharePoint : strings.AppSharePointEnvironment;
-  }
-
-  protected onThemeChanged(currentTheme: IReadonlyTheme | undefined): void {
-    if (!currentTheme) {
-      return;
-    }
-
-    this._isDarkTheme = !!currentTheme.isInverted;
-    const {
-      semanticColors
-    } = currentTheme;
-    this.domElement.style.setProperty('--bodyText', semanticColors.bodyText);
-    this.domElement.style.setProperty('--link', semanticColors.link);
-    this.domElement.style.setProperty('--linkHovered', semanticColors.linkHovered);
-
   }
 
   protected onDispose(): void {

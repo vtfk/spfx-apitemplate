@@ -18,7 +18,7 @@
     "no-unnecessary-semicolons": true,
     "no-unused-expression": true,
     "no-with-statement": true,
-    "semicolon": true,
+    "semicolon": false,
     "trailing-comma": false,
     "typedef": false,
     "typedef-whitespace": false,

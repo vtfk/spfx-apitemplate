@@ -1,10 +1,9 @@
 import * as React from 'react';
 import styles from './TemplateWebpart.module.scss';
 import { ITemplateWebpartProps } from './ITemplateWebpartProps';
-import { escape } from '@microsoft/sp-lodash-subset';
 import { isEqual, sortBy } from 'lodash'
 import Sjablong from 'sjablong'
-
+import handlebars from 'handlebars';
 import mockData from './Data.js'
 import template from './Template.js'
 
@@ -17,72 +16,65 @@ export interface ITemplateWebpartState {
 const urlRegex = /((\w+:\/\/)[-a-zA-Z0-9:@;?&=\/%\+\.\*!'\(\),\$_\{\}\^~\[\]`#|]+)/g
 
 export default class TemplateWebpart extends React.Component<ITemplateWebpartProps, ITemplateWebpartState> {
+  /*
+    Constructor
+  */
   public constructor(props: ITemplateWebpartProps) {
     super(props);
   }
 
+  /*
+    State
+  */
   state = {
     errors: [],
     data: {},
     html: ''
   }
 
+  /*
+    LifeCycle hooks
+  */
+  // Runs only when the component first loads
   componentDidMount = () => {
-    console.log('Mounted');
-    console.log('template', template);
+    this.debug('=== Webpart Mounted ===');
+    this.debug('Props', this.props)
 
     const element = document.createElement('div')
     element.innerHTML = template;
     console.log('Element', element)
 
-    // Find all injection scripts
-    const injects = element.querySelectorAll("[type='x-inject']");
-    for (let i = 0; i < injects.length; i++) {
-      // Find all script elements 
-      const scripts = injects[i].getElementsByTagName('script');
-
-      for (let y = 0; y < scripts.length; y++) {
-        // Create a new script element, it will not run if just appending the parsed scripts
-        const script = document.createElement("script");
-        script.type = 'text/javascript'
-        script.async = true;
-        script.innerHTML = scripts[y].innerHTML;
-        script.id = `template-${Math.random().toString()}`
-        // Append it to the head
-        document.head.appendChild(script);
-      }
-    }
-
-    let x = 10;
-
-    // Find all 
-    const setups = element.querySelectorAll("[type='x-setup']");
-    console.log('Setups', setups)
-    for (let i = 0; i < setups.length; i++) {
-      // Find all script elements 
-      const scripts = setups[i].getElementsByTagName('script');
-
-      for (let y = 0; y < scripts.length; y++) {
-        if(!scripts[y]?.innerHTML) continue;
-
-        // Execute the code
-        eval(scripts[y].innerHTML)
-      }
-    }
-    console.log(x)
     this.validateProps(undefined, undefined)
   }
 
-  
-
+  // Runs data for the components updates and triggers a re-render
   componentDidUpdate = (prevProps, prevState) => {
-    console.log('Updated')
+    this.debug('=== Webpart Updated ===');
+    this.debug('Props', this.props)
+    this.debug('State', this.state)
     this.validateProps(prevProps, prevState)
   }
 
+  /*
+    Functions
+  */
+  debug(...args) {
+    if(!this.props?.debug) return;
+    console.log(...args)
+  }
+
   private validateProps (prevProps, prevState) {
+    /*
+      Setup
+    */
+    // The handlebars import must be set as a variable here to make sure webpack don't renames it
+    // The reason for this is that injection scripts with handlebar-helpers would not know what the name is
+    const Handlebars = handlebars;  
+
+    /*
+      Validate that the props are ok
+    */
     const _errors = [];
-    console.log('Props', this.props)
     if(!this.props.type) _errors.push('type must be provided');
     if(!this.props.method) _errors.push('method must be provided');
     if(this.props.type === 'basic') {
@@ -105,17 +97,107 @@ export default class TemplateWebpart extends React.Component<ITemplateWebpartPro
     const sortedErrors = sortBy(_errors, (i) => i)
     previousErrors = sortBy(previousErrors, (i) => i)
 
+    // Protects against inifite loop
     if(!isEqual(sortedErrors, previousErrors)) {
-      console.log('The errors are not equal')
-      this.setState({
-        errors: _errors
-      })
+      return this.setState({errors: _errors});
+    }
+    if(_errors.length > 0) return;
+
+    /*
+      Determine what template to use
+    */
+    // TODO: Add support for templateUrl
+    const fullTemplate = this.props.templateString;
+    let bodyTemplateString = '';
+
+    if(_errors.length > 0) return this.setState({errors: _errors});
+    /*
+      Load the template into a HTML element
+    */
+    const element = document.createElement('div')
+    try {
+      element.innerHTML = fullTemplate;
+    } catch (err) {
+      _errors.push('Could not parse template into HTML element: ' + err.message)
     }
 
-    if(_errors.length > 0) return;
-    
+    if(_errors.length > 0) return this.setState({errors: _errors});
+    /*
+      Load the template
+    */
+    try {
+      this.debug('Retreiving x-template')
+      let elements = element.querySelectorAll("[type='x-template']");
+      if(!elements || elements.length === 0) throw new Error('Could not find any x-template elements in the template');
+      if(!elements[0].innerHTML) throw new Error('x-template cannot be empty');
+      this.debug(`Found ${elements.length} elements`, elements)
+      bodyTemplateString = elements[0].innerHTML;
+    } catch (err) {
+      _errors.push(`Error parsing template:'\n${err.message}`)
+    }
+
+    /*
+      Parse and load all x-head scripts
+    */
+    try {
+      this.debug('Retreiving x-head')
+      const elements = element.querySelectorAll("[type='x-head']");
+      this.debug(`Found ${elements.length} elements`, elements)
+      for (let i = 0; i < elements.length; i++) {
+        // Find all script elements 
+        const scripts = elements[i].getElementsByTagName('script');
+  
+        for (let y = 0; y < scripts.length; y++) {
+          // Create a new script element, it will not run if just appending the parsed scripts
+          const script = document.createElement("script");
+          script.type = 'text/javascript'
+          script.async = true;
+          script.innerHTML = scripts[y].innerHTML;
+          script.id = `x-head-${Math.random().toString()}`
+          // Append it to the head
+          document.head.appendChild(script);
+        }
+      }
+    } catch (err) {
+      _errors.push(`Error parsing parsing x-head:'\n${err.message}`)
+    }
+    if(_errors.length > 0) return this.setState({errors: _errors});
+
+    /*
+      Run all injection scripts
+    */
+    try {
+      this.debug('Retreiving x-inject')
+      const elements = element.querySelectorAll("[type='x-inject']");
+      this.debug(`Found ${elements.length} elements`, elements)
+      for (let i = 0; i < elements.length; i++) {
+        // Find all script elements 
+        const scripts = elements[i].getElementsByTagName('script');
+      
+        for (let y = 0; y < scripts.length; y++) {
+          if(!scripts[y]?.innerHTML) continue;
+          // Execute the code
+          eval(scripts[y].innerHTML)
+          
+        }
+      }
+    } catch (err) {
+      _errors.push(`Error parsing parsing x-inject:'\n${err.message}`)
+    }
+
+    if(_errors.length > 0) return this.setState({errors: _errors});
+    /*
+      Output handlebars helpers
+    */
+   this.debug('Handlebars helpers', Handlebars.helpers);
+
+    /*
+      Render the template
+    */  
     if(!this.state.html) {
-      const html = Sjablong.replacePlaceholders(this.props.templateString, mockData)
+      // const html = Sjablong.replacePlaceholders(this.props.templateString, mockData)
+      const templateGenerator = Handlebars.compile(bodyTemplateString)
+      const html = templateGenerator({ dsData: mockData })
       this.setState({
         html
       })
@@ -150,11 +232,6 @@ export default class TemplateWebpart extends React.Component<ITemplateWebpartPro
 
     return (
       <section className={`${styles.templateWebpart}`}>
-        { debug === true &&
-          <div>
-            DEBUG
-          </div>
-        }
         <div>
           <div dangerouslySetInnerHTML={{__html: this.state.html || ''}} />
         </div>
