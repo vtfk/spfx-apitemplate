@@ -92,7 +92,7 @@ export default class TemplateWebpartWebPart extends BaseClientSideWebPart<ITempl
 
     const loadingTypes = [
       {
-        key: 'pinner',
+        key: 'spinner',
         text: 'Spinner'
       },
       {
