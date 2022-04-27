@@ -1,18 +1,14 @@
 import * as React from 'react';
 import * as ReactDom from 'react-dom';
-import { Version } from '@microsoft/sp-core-library';
 import {
   IPropertyPaneConfiguration,
   IPropertyPaneGroup,
-  PropertyPaneButton,
   PropertyPaneDropdown,
   PropertyPaneTextField,
   PropertyPaneToggle
 } from '@microsoft/sp-property-pane';
 import { BaseClientSideWebPart } from '@microsoft/sp-webpart-base';
-import { IReadonlyTheme } from '@microsoft/sp-component-base';
 
-import * as strings from 'TemplateWebpartWebPartStrings';
 import TemplateWebpart from './components/TemplateWebpart';
 import { ITemplateWebpartProps } from './components/ITemplateWebpartProps';
 import Handlebars from 'handlebars';
@@ -30,7 +26,7 @@ export default class TemplateWebpartWebPart extends BaseClientSideWebPart<ITempl
   public render(): void {
     const element: React.ReactElement<ITemplateWebpartProps> = React.createElement(
       TemplateWebpart,
-      {...this.properties}
+      {...this.properties, webpartContext: this.context}
     );
 
     ReactDom.render(element, this.domElement);
@@ -38,10 +34,6 @@ export default class TemplateWebpartWebPart extends BaseClientSideWebPart<ITempl
 
   protected onDispose(): void {
     ReactDom.unmountComponentAtNode(this.domElement);
-  }
-
-  protected get dataVersion(): Version {
-    return Version.parse('1.0');
   }
 
   protected getPropertyPaneConfiguration(): IPropertyPaneConfiguration {

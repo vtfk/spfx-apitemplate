@@ -8,8 +8,8 @@ import handlebars from 'handlebars';
 import template from './Template.js'
 import { nanoid } from 'nanoid';
 import axios, { AxiosRequestConfig } from 'axios';
-import ContentLoader, { Facebook } from 'react-content-loader'
 import { Shimmer, Spinner, SpinnerSize } from 'office-ui-fabric-react';
+import * as msal from '@azure/msal-browser'
 
 export interface ITemplateWebpartState {
   id: string,
@@ -105,6 +105,7 @@ export default class TemplateWebpart extends React.Component<ITemplateWebpartPro
       if(!this.props.oauthClientId) errors.push('oauthClientId must be provided when authentication oauth is used');
       if(!this.props.oauthAuthorityUrl) errors.push('oauthAuthorityUrl must be provided when authentication oauth is used');
       if(!this.props.oauthScopes) errors.push('oauthScopes must be provided when authentication oauth is used');
+      if(!urlRegex.test(this.props.oauthAuthorityUrl)) errors.push('oauthAuthorityUrl is not in a valid url format');
     }
     if(!this.props.dataUrl) errors.push('dataUrl must be provided');
     // if(this.props.dataUrl && !urlRegex.test(this.props.dataUrl)) errors.push('dataUrl is not in a valid url format');
@@ -186,7 +187,7 @@ export default class TemplateWebpart extends React.Component<ITemplateWebpartPro
       const templateBody = this.getTemplateBody(this.props);
 
       // TODO: Add authentication
-      const auth = this.authenticate(this.props);
+      const auth = await this.authenticate(this.props);
 
       // Retreive data
       const data = mustFetchData ? await this.fetchData(this.props) : this.state.data;
@@ -297,9 +298,55 @@ export default class TemplateWebpart extends React.Component<ITemplateWebpartPro
   }
 
   private async authenticate(props : ITemplateWebpartProps) {
+    this.debug('Authenticating');
     this.setState({
       isAuthenticating: true
     })
+
+    const client = new msal.PublicClientApplication({
+      auth: {
+        clientId: this.props.oauthClientId,
+        authority: this.props.oauthAuthorityUrl,
+      },
+    })
+
+    const scopes = this.props.oauthScopes.split('\n');
+
+    this.debug('Authenticating');
+    this.debug('ClientID', this.props.oauthClientId);
+    this.debug('Authority URL', this.props.oauthAuthorityUrl);
+    this.debug('Scopes', scopes);
+    
+    // Attempt to retreive the active account
+    let activeAccount = client.getActiveAccount();
+    if(!activeAccount) {
+      const allAccounts = client.getAllAccounts();
+      if(allAccounts && allAccounts.length > 0) activeAccount = allAccounts[0];
+    }
+
+    // If an active account has been found we can attempt to silently connect
+    if(activeAccount) {
+      const silentRequest : msal.SilentRequest = {
+        scopes: scopes
+      }
+      const response = await client.acquireTokenSilent({ scopes: scopes })
+      console.log('Silent response', response);
+    }
+
+    // Attempt to figure out a login hint from webpartContext
+    let loginHint = '';
+    if(this.props.webpartContext) {
+      loginHint = this.props.webpartContext.pageContext.user.loginName || this.props.webpartContext.pageContext.user.email;
+    }
+    console.log('LoginHint', loginHint)
+
+    const loginRequest : msal.PopupRequest = {
+      scopes: scopes,
+    }
+    if(loginHint) loginRequest.loginHint = loginHint;
+    const loginResponse = await client.acquireTokenPopup(loginRequest)
+
+    console.log('Login response', loginResponse)
 
     this.setState({
       isAuthenticating: false

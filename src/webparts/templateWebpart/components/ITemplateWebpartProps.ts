@@ -1,3 +1,5 @@
+import { WebPartContext } from "@microsoft/sp-webpart-base";
+
 export interface ITemplateWebpartProps {
   type: string,
   dataUrl: string,
@@ -20,5 +22,6 @@ export interface ITemplateWebpartProps {
   loadingTemplateString: string,
   minHeight: string,
   maxHeight: string,
+  webpartContext: WebPartContext,
   debug: boolean;
 }

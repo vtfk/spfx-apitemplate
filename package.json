@@ -9,6 +9,7 @@
     "test": "gulp test"
   },
   "dependencies": {
+    "@azure/msal-browser": "^2.23.0",
     "@microsoft/sp-core-library": "1.14.0",
     "@microsoft/sp-lodash-subset": "1.14.0",
     "@microsoft/sp-office-ui-fabric-core": "1.14.0",
@@ -20,10 +21,8 @@
     "nanoid": "^3.3.3",
     "office-ui-fabric-react": "7.174.1",
     "react": "16.13.1",
-    "react-content-loader": "^6.2.0",
     "react-dom": "16.13.1",
-    "sjablong": "^1.0.33",
-    "spinners-react": "^1.0.7"
+    "sjablong": "^1.0.33"
   },
   "devDependencies": {
     "@microsoft/rush-stack-compiler-3.9": "0.4.47",
