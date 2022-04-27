@@ -300,6 +300,7 @@ export default class TemplateWebpart extends React.Component<ITemplateWebpartPro
 
     this.debug('Fetching data from: ' + options.dataUrl)
 
+    this.setState({ isLoading: true })
     const { data } = await axios.request(request);
     return data;
   }
