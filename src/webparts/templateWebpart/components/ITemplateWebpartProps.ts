@@ -15,6 +15,7 @@ export interface ITemplateWebpartProps {
   errorTemplateString: string,
   loadingType: string,
   mockLoading: boolean,
+  mockAuthenticating: boolean,
   loadingTemplateUrl: string,
   loadingTemplateString: string,
   minHeight: string,

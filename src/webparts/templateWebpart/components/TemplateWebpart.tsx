@@ -13,10 +13,12 @@ import { Shimmer, Spinner, SpinnerSize } from 'office-ui-fabric-react';
 
 export interface ITemplateWebpartState {
   id: string,
+  isAuthenticating: boolean,
   isLoading: boolean,
   propErrors: string[]
   error: any,
   data: any;
+  bearerToken: string;
   html: string;
 }
 
@@ -35,9 +37,11 @@ export default class TemplateWebpart extends React.Component<ITemplateWebpartPro
   */
   state = {
     id: nanoid(),
+    isAuthenticating: false,
     isLoading: false,
     propErrors: [],
     error: undefined,
+    bearerToken: undefined,
     data: undefined,
     html: ''
   }
@@ -148,13 +152,16 @@ export default class TemplateWebpart extends React.Component<ITemplateWebpartPro
     // Check if it is time to authenticate again
     let mustAuthenticate = false;
     if(this.props.type === 'basic') mustAuthenticate = !this.isAllEqual(this.props, prevProps, ['type', 'username', 'password']);
-    else if(this.props.type === 'oauth')  mustAuthenticate = !this.isAllEqual(this.props, prevProps, ['type', 'oauthClientId', 'oauthAuthorityUrl', 'oauthScopes']);
-    
+    else if(this.props.type === 'oauth') {
+      mustAuthenticate = !this.isAllEqual(this.props, prevProps, ['type', 'oauthClientId', 'oauthAuthorityUrl', 'oauthScopes']);
+      // TODO: Make expiration check
+    }
+
     // Check if data must be retreived
     const mustFetchData = !this.isAllEqual(this.props, prevProps, ['dataUrl', 'method', 'headers', 'body']) || this.state.data === undefined;
 
     // Check if rerender is required
-    const mustRerender = !this.isAllEqual(this.props, prevProps, ['templateUrl', 'templateString', 'minHeight', 'maxHeight']) || mustAuthenticate || mustFetchData
+    const mustRerender = !this.isAllEqual(this.props, prevProps, ['templateUrl', 'templateString', 'minHeight', 'maxHeight', 'mockLoading', 'mockAuthenticating']) || mustAuthenticate || mustFetchData
 
     if(isEqual(prevProps, this.props)) {
       this.debug('The current and previous props are identical, no actions needed');
@@ -179,6 +186,7 @@ export default class TemplateWebpart extends React.Component<ITemplateWebpartPro
       const templateBody = this.getTemplateBody(this.props);
 
       // TODO: Add authentication
+      const auth = this.authenticate(this.props);
 
       // Retreive data
       const data = mustFetchData ? await this.fetchData(this.props) : this.state.data;
@@ -205,11 +213,12 @@ export default class TemplateWebpart extends React.Component<ITemplateWebpartPro
       this.setState({
         data,
         html,
-        isLoading: false
+        isLoading: false,
       })
     } catch (err) {
       console.error('An error has occured', err)
       this.setState({
+        isLoading: false,
         error: err.message
       })
     }
@@ -287,6 +296,16 @@ export default class TemplateWebpart extends React.Component<ITemplateWebpartPro
     return templateGenerator({ dsData: data })
   }
 
+  private async authenticate(props : ITemplateWebpartProps) {
+    this.setState({
+      isAuthenticating: true
+    })
+
+    this.setState({
+      isAuthenticating: false
+    })
+  }
+
   private async fetchData(options : ITemplateWebpartProps) {
     const request : AxiosRequestConfig = {
       url: options.dataUrl,
@@ -323,12 +342,6 @@ export default class TemplateWebpart extends React.Component<ITemplateWebpartPro
   }
 
   public render(): React.ReactElement<ITemplateWebpartProps> {
-    const {
-      templateUrl,
-      templateString,
-      debug
-    } = this.props;
-
     if(this.allErrors().length > 0) {
       return (
         <div className={styles.error} style={this.baseStyle()}>
@@ -348,11 +361,16 @@ export default class TemplateWebpart extends React.Component<ITemplateWebpartPro
       )
     }
 
-    if(this.state.isLoading || this.props.mockLoading) {
+    if(this.state.isLoading || this.props.mockLoading || this.props.mockAuthenticating) {
+
+      let message = 'Loading';
+      if(this.state.isAuthenticating || this.props.mockAuthenticating) message = 'Authenticating';
+
       return (
         <div className={styles.loading} style={this.baseStyle()}>
           { this.props.loadingType === 'spinner' && <Spinner size={SpinnerSize.large} />}
           { this.props.loadingType === 'skeleton' && <Shimmer height="200px" width="100%" style={{width: '100%'}} />}
+          { message }
         </div>
       )
     }

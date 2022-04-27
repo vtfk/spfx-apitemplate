@@ -164,9 +164,6 @@ export default class TemplateWebpartWebPart extends BaseClientSideWebPart<ITempl
             options: loadingTypes,
             selectedKey: 'get'
           }),
-          PropertyPaneToggle('mockLoading', {
-            label: 'Loading',
-          }),
           PropertyPaneTextField('loadingTemplateUrl', {
             label: 'Template URL',
             description: 'Url of template to override loading'
@@ -217,7 +214,13 @@ export default class TemplateWebpartWebPart extends BaseClientSideWebPart<ITempl
         groupFields: [
           PropertyPaneToggle('debug', {
             label: 'Debug',
-          })
+          }),
+          PropertyPaneToggle('mockLoading', {
+            label: 'Loading',
+          }),
+          PropertyPaneToggle('mockAuthenticating', {
+            label: 'Authenticating',
+          }),
         ]
       }
     ]
