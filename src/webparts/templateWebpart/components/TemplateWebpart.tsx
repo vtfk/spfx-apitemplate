@@ -139,25 +139,19 @@ export default class TemplateWebpart extends React.Component<ITemplateWebpartPro
     // If there are prop errors there is no need to continue
     if(propErrors.length > 0) return;
 
-
     /*
       Determine what actions must be done
     */
-    // Check if the last render had errors
-    const hadPropErrors = prevState?.propErrors?.length > 0;
-    const hadErrors = prevState?.error
-
     // Check if it is time to authenticate again
     let mustAuthenticate = false;
-    if(this.props.type !== 'anynomous') {
-      mustAuthenticate = !this.isAllEqual(this.props, prevProps, ['type', 'username', 'password']) || hadErrors;
-    }
-
+    if(this.props.type === 'basic') mustAuthenticate = !this.isAllEqual(this.props, prevProps, ['type', 'username', 'password']);
+    else if(this.props.type === 'oauth')  mustAuthenticate = !this.isAllEqual(this.props, prevProps, ['type', 'oauthClientId', 'oauthAuthorityUrl', 'oauthScopes']);
+    
     // Check if data must be retreived
     const mustFetchData = !this.isAllEqual(this.props, prevProps, ['dataUrl']) || this.state.data === undefined;
 
     // Check if rerender is required
-    const mustRerender = !this.isAllEqual(this.props, prevProps, ['templateUrl', 'templateString']) || mustAuthenticate || hadErrors;
+    const mustRerender = !this.isAllEqual(this.props, prevProps, ['templateUrl', 'templateString']) || mustAuthenticate
 
 
     if(isEqual(prevProps, this.props) && isEqual(prevState, this.state)) {
