@@ -9,6 +9,7 @@ import template from './Template.js'
 import { nanoid } from 'nanoid';
 import axios, { AxiosRequestConfig } from 'axios';
 import { Shimmer, Spinner, SpinnerSize } from 'office-ui-fabric-react';
+import { MSGraphClient } from '@microsoft/sp-http';
 import * as msal from '@azure/msal-browser'
 
 export interface ITemplateWebpartState {
@@ -64,9 +65,9 @@ export default class TemplateWebpart extends React.Component<ITemplateWebpartPro
   // Runs data for the components updates and triggers a re-render
   componentDidUpdate = async (prevProps : ITemplateWebpartProps, prevState : ITemplateWebpartState) => {
     this.debug('=== Webpart Updated ===');
-    this.debug('PrevProps', prevProps)
-    this.debug('Props', this.props)
-    this.debug('State', this.state)
+    // this.debug('PrevProps', prevProps)
+    // this.debug('Props', this.props)
+    // this.debug('State', this.state)
 
     await this.runActions(prevProps, prevState);
   }
@@ -154,15 +155,16 @@ export default class TemplateWebpart extends React.Component<ITemplateWebpartPro
     let mustAuthenticate = false;
     if(this.props.type === 'basic') mustAuthenticate = !this.isAllEqual(this.props, prevProps, ['type', 'username', 'password']);
     else if(this.props.type === 'oauth') {
-      mustAuthenticate = !this.isAllEqual(this.props, prevProps, ['type', 'oauthClientId', 'oauthAuthorityUrl', 'oauthScopes']);
+      mustAuthenticate = !this.isAllEqual(this.props, prevProps, ['type', 'oauthClientId', 'oauthAuthorityUrl', 'oauthScopes', 'headers']);
       // TODO: Make expiration check
-    }
+    } else if(this.props.type === 'msgraph') mustAuthenticate = true;
 
     // Check if data must be retreived
     const mustFetchData = !this.isAllEqual(this.props, prevProps, ['dataUrl', 'method', 'headers', 'body']) || this.state.data === undefined;
 
     // Check if rerender is required
-    const mustRerender = !this.isAllEqual(this.props, prevProps, ['templateUrl', 'templateString', 'minHeight', 'maxHeight', 'mockLoading', 'mockAuthenticating']) || mustAuthenticate || mustFetchData
+    // const mustRerender = !this.isAllEqual(this.props, prevProps, ['templateUrl', 'templateString', 'minHeight', 'maxHeight', 'mockLoading', 'mockAuthenticating']) || mustAuthenticate || mustFetchData
+    const mustRerender = true;
 
     if(isEqual(prevProps, this.props)) {
       this.debug('The current and previous props are identical, no actions needed');
@@ -183,15 +185,25 @@ export default class TemplateWebpart extends React.Component<ITemplateWebpartPro
       Run all actions
     */
     try {
+      // Clear the errors
+      this.setState({ error: undefined })
+
       // Retreive the template body
       const templateBody = this.getTemplateBody(this.props);
 
-      // TODO: Add authentication
-      const auth = await this.authenticate(this.props);
+      // Authenticate the request
+      let authHeaders = undefined;
+      if(mustAuthenticate) {
+        authHeaders = await this.authenticate(this.props);
+      }
+      
 
       // Retreive data
-      const data = mustFetchData ? await this.fetchData(this.props) : this.state.data;
-
+      let data = this.state.data;
+      if(mustFetchData) {
+        data = mustFetchData ? await this.fetchData(this.props, authHeaders) : this.state.data;
+      }
+      
       let html = this.state.html;
       if(mustRerender) {
         // Parse the template as a HTML element
@@ -303,64 +315,112 @@ export default class TemplateWebpart extends React.Component<ITemplateWebpartPro
       isAuthenticating: true
     })
 
-    const client = new msal.PublicClientApplication({
-      auth: {
-        clientId: this.props.oauthClientId,
-        authority: this.props.oauthAuthorityUrl,
-      },
-    })
-
-    const scopes = this.props.oauthScopes.split('\n');
-
-    this.debug('Authenticating');
-    this.debug('ClientID', this.props.oauthClientId);
-    this.debug('Authority URL', this.props.oauthAuthorityUrl);
-    this.debug('Scopes', scopes);
-    
-    // Attempt to retreive the active account
-    let activeAccount = client.getActiveAccount();
-    if(!activeAccount) {
-      const allAccounts = client.getAllAccounts();
-      if(allAccounts && allAccounts.length > 0) activeAccount = allAccounts[0];
+    let authHeaders = undefined;
+    if(this.props.type === 'msgraph') {
+      this.debug('Retreiving MSGraph token');
+      // const client = await this.props.webpartContext.msGraphClientFactory.getClient());
     }
-
-    // If an active account has been found we can attempt to silently connect
-    if(activeAccount) {
-      const silentRequest : msal.SilentRequest = {
-        scopes: scopes
+    else if(this.props.type === 'oauth') {
+      const client = new msal.PublicClientApplication({
+        auth: {
+          clientId: this.props.oauthClientId,
+          authority: this.props.oauthAuthorityUrl,
+        },
+      })
+  
+      const scopes = this.props.oauthScopes.split('\n');
+  
+      this.debug('Authenticating');
+      this.debug('ClientID', this.props.oauthClientId);
+      this.debug('Authority URL', this.props.oauthAuthorityUrl);
+      this.debug('Scopes', scopes);
+      
+      // Attempt to retreive the active account
+      let activeAccount = client.getActiveAccount();
+      if(!activeAccount) {
+        const allAccounts = client.getAllAccounts();
+        if(allAccounts && allAccounts.length > 0) activeAccount = allAccounts[0];
       }
-      const response = await client.acquireTokenSilent({ scopes: scopes })
-      console.log('Silent response', response);
+  
+      // If an active account has been found we can attempt to silently connect
+      if(activeAccount) {
+        const silentRequest : msal.SilentRequest = {
+          scopes: scopes,
+          account: activeAccount,
+          
+        }
+        const loginResponse = await client.acquireTokenSilent(silentRequest)
+        console.log('Silent response', loginResponse);
+        authHeaders = {
+          'Authorization': `Bearer ${loginResponse.accessToken}`
+        }
+      }
+      
+      // Popup login
+      if(!authHeaders) {
+        // Attempt to figure out a login hint from webpartContext
+        let loginHint = '';
+        if(this.props.webpartContext) {
+          loginHint = this.props.webpartContext.pageContext.user.loginName || this.props.webpartContext.pageContext.user.email;
+        }
+        console.log('LoginHint', loginHint)
+    
+        const loginRequest : msal.PopupRequest = {
+          scopes: scopes,
+        }
+        if(loginHint) loginRequest.loginHint = loginHint;
+        const loginResponse = await client.acquireTokenPopup(loginRequest)
+    
+        // Validate the response
+        if(!loginResponse) throw new Error('Login request did not give a response');
+        if(!loginResponse.accessToken) throw new Error('Login request did not respond with a AccessToken');
+
+        this.debug('Login popup response', loginResponse)
+        authHeaders = {
+          'Authorization': `Bearer ${loginResponse.accessToken}`
+        }
+      }
     }
 
-    // Attempt to figure out a login hint from webpartContext
-    let loginHint = '';
-    if(this.props.webpartContext) {
-      loginHint = this.props.webpartContext.pageContext.user.loginName || this.props.webpartContext.pageContext.user.email;
-    }
-    console.log('LoginHint', loginHint)
-
-    const loginRequest : msal.PopupRequest = {
-      scopes: scopes,
-    }
-    if(loginHint) loginRequest.loginHint = loginHint;
-    const loginResponse = await client.acquireTokenPopup(loginRequest)
-
-    console.log('Login response', loginResponse)
+    if(!authHeaders) throw new Error('Could not get any authentication headers')
+    this.debug('Auth headers', authHeaders)
 
     this.setState({
       isAuthenticating: false
     })
+    return authHeaders;
   }
 
-  private async fetchData(options : ITemplateWebpartProps) {
+  private async fetchData(options : ITemplateWebpartProps, authHeaders : Object) {
     const request : AxiosRequestConfig = {
       url: options.dataUrl,
       method: options.method,
       data: options.body
     }
 
+    let headers = {};
+    if(this.props.headers) {
+      const lines = this.props.headers.split('\n');
+      for(const line of lines) {
+        if(line.indexOf('=') <= 0) continue;
+        const parts = line.split(/=(.*)/);
+        if(parts.length < 2) throw new Error(`Invalid header ${line}`)
+        headers[parts[0].trim()] = parts[1].trim()
+      }
+    }
+
+    if(authHeaders) {
+      if(typeof authHeaders !== 'object') throw new Error(`Authentication header is invalid\n${authHeaders}`);
+      headers = {
+        ...headers,
+        ...authHeaders
+      }
+    }
+
+    if(Object.keys(headers).length > 0) request.headers = headers;
+
     this.debug('Fetching data from: ' + options.dataUrl)
+    this.debug('Request', request)
     this.setState({ isLoading: true })
     const { data } = await axios.request(request);
     this.debug('Received data', data);

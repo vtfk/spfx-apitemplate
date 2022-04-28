@@ -50,6 +50,10 @@ export default class TemplateWebpartWebPart extends BaseClientSideWebPart<ITempl
         text: 'Basic'
       },
       {
+        key: 'msgraph',
+        text: 'Microsoft Graph'
+      },
+      {
         key: 'oauth',
         text: 'OAuth'
       }
