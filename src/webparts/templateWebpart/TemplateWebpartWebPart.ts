@@ -54,8 +54,8 @@ export default class TemplateWebpartWebPart extends BaseClientSideWebPart<ITempl
         text: 'Microsoft Graph'
       },
       {
-        key: 'oauth',
-        text: 'OAuth'
+        key: 'msapp',
+        text: 'Microsoft App Registration'
       }
     ]
 
@@ -102,7 +102,7 @@ export default class TemplateWebpartWebPart extends BaseClientSideWebPart<ITempl
     */
     let groups : IPropertyPaneGroup[] = [
       {
-        groupName: 'Data',
+        groupName: 'API',
         groupFields: [
           PropertyPaneDropdown('type', { 
             label: 'Type',
@@ -135,6 +135,19 @@ export default class TemplateWebpartWebPart extends BaseClientSideWebPart<ITempl
         ]
       },
       {
+        groupName: 'Data',
+        isCollapsed: true,
+        groupFields: [
+          PropertyPaneTextField('data', {
+            label: 'Data',
+            rows: 5,
+            multiline: true,
+            resizable: true,
+            description: 'If provided the webpart will use this data instead of contacting the API',
+          })
+        ]
+      },
+      {
         groupName: 'Template',
         isCollapsed: true,
         groupFields: [
@@ -152,48 +165,14 @@ export default class TemplateWebpartWebPart extends BaseClientSideWebPart<ITempl
         ]
       },
       {
-        groupName: 'Loading',
-        isCollapsed: true,
-        groupFields: [
-          PropertyPaneDropdown('loadingType', { 
-            label: 'Type',
-            options: loadingTypes,
-            selectedKey: 'get'
-          }),
-          PropertyPaneTextField('loadingTemplateUrl', {
-            label: 'Template URL',
-            description: 'Url of template to override loading'
-          }),
-          PropertyPaneTextField('loadingTemplateString', {
-            label: 'Template String',
-            rows: 5,
-            multiline: true,
-            resizable: true,
-            description: 'Template text for overriding loading'
-          })
-        ]
-      },
-      {
-        groupName: 'Error',
-        isCollapsed: true,
-        groupFields: [
-          PropertyPaneTextField('errorTemplateUrl', {
-            label: 'Template URL',
-            description: 'Url of template to override error'
-          }),
-          PropertyPaneTextField('errorTemplateString', {
-            label: 'Template String',
-            rows: 5,
-            multiline: true,
-            resizable: true,
-            description: 'Template text for overriding error'
-          })
-        ]
-      },
-      {
         groupName: 'Visual',
         isCollapsed: true,
         groupFields: [
+          PropertyPaneDropdown('loadingType', { 
+            label: 'Loading indicator',
+            options: loadingTypes,
+            selectedKey: 'get'
+          }),
           PropertyPaneTextField('minHeight', {
             label: 'Minumum height',
             description: 'The minimum height of the webpart'
@@ -213,10 +192,7 @@ export default class TemplateWebpartWebPart extends BaseClientSideWebPart<ITempl
           }),
           PropertyPaneToggle('mockLoading', {
             label: 'Loading',
-          }),
-          PropertyPaneToggle('mockAuthenticating', {
-            label: 'Authenticating',
-          }),
+          })
         ]
       }
     ]
@@ -233,13 +209,13 @@ export default class TemplateWebpartWebPart extends BaseClientSideWebPart<ITempl
             PropertyPaneTextField('password', {label: 'Password'})
           ]
         })
-      } else if (this.properties.type === 'oauth') {
+      } else if (this.properties.type === 'msapp') {
         groups.splice(1, 0, {
           groupName: 'Authentication',
           groupFields: [
-            PropertyPaneTextField('oauthClientId', { label: 'ClientID', description: 'The OAuth client/application id' }),
-            PropertyPaneTextField('oauthAuthorityUrl', { label: 'Authority URL', description: 'The URL for requesting the bearer token' }),
-            PropertyPaneTextField('oauthScopes', {
+            PropertyPaneTextField('msappClientId', { label: 'ClientID', description: 'The app client/application id' }),
+            PropertyPaneTextField('msappAuthorityUrl', { label: 'Authority URL', description: 'The URL for requesting the bearer token' }),
+            PropertyPaneTextField('msappScopes', {
               label: 'Scopes',
               rows: 5,
               multiline: true,

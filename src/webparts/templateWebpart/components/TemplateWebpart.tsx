@@ -4,22 +4,22 @@ import { ITemplateWebpartProps } from './ITemplateWebpartProps';
 import { isEqual, sortBy, times } from 'lodash'
 import Sjablong from 'sjablong'
 import handlebars from 'handlebars';
-// import mockData from './Data.js'
 import template from './Template.js'
 import { nanoid } from 'nanoid';
 import axios, { AxiosRequestConfig } from 'axios';
 import { Shimmer, Spinner, SpinnerSize } from 'office-ui-fabric-react';
-import { MSGraphClient } from '@microsoft/sp-http';
 import * as msal from '@azure/msal-browser'
 
 export interface ITemplateWebpartState {
   id: string,
   isAuthenticating: boolean,
   isLoading: boolean,
+  loadingMessage: string,
   propErrors: string[]
   error: any,
   data: any;
   bearerToken: string;
+  loadingTemplateBody: string;
   html: string;
 }
 
@@ -40,10 +40,12 @@ export default class TemplateWebpart extends React.Component<ITemplateWebpartPro
     id: nanoid(),
     isAuthenticating: false,
     isLoading: false,
+    loadingMessage: '',
     propErrors: [],
     error: undefined,
     bearerToken: undefined,
     data: undefined,
+    loadingTemplateBody: '',
     html: ''
   }
 
@@ -102,19 +104,16 @@ export default class TemplateWebpart extends React.Component<ITemplateWebpartPro
     if(this.props.type === 'basic') {
       if(!this.props.username) errors.push('username must be provided when authentication basic is used');
       if(!this.props.password) errors.push('password must be provided when authentication basic is used');
-    } else if (this.props.type === 'oauth') {
-      if(!this.props.oauthClientId) errors.push('oauthClientId must be provided when authentication oauth is used');
-      if(!this.props.oauthAuthorityUrl) errors.push('oauthAuthorityUrl must be provided when authentication oauth is used');
-      if(!this.props.oauthScopes) errors.push('oauthScopes must be provided when authentication oauth is used');
-      // if(!urlRegex.test(this.props.oauthAuthorityUrl)) errors.push('oauthAuthorityUrl is not in a valid url format');
+    } else if (this.props.type === 'msapp') {
+      if(!this.props.msappClientId) errors.push('msappClientId must be provided when authentication msapp is used');
+      if(!this.props.msappAuthorityUrl) errors.push('msappAuthorityUrl must be provided when authentication msapp is used');
+      if(!this.props.msappScopes) errors.push('msappScopes must be provided when authentication msapp is used');
+      // if(!urlRegex.test(this.props.msappAuthorityUrl)) errors.push('msappAuthorityUrl is not in a valid url format');
     }
     if(!this.props.dataUrl) errors.push('dataUrl must be provided');
     // if(this.props.dataUrl && !urlRegex.test(this.props.dataUrl)) errors.push('dataUrl is not in a valid url format');
     if(!this.props.templateUrl && !this.props.templateString) errors.push('templateUrl or templateString must be provided');
-    
-    if(this.props.templateUrl && !urlRegex.test(this.props.templateUrl)) errors.push('templateUrl is not in a valid url format');
-    if(this.props.errorTemplateUrl && !urlRegex.test(this.props.errorTemplateUrl)) errors.push('errorTemplateUrl is not in a valid url format');
-    if(this.props.loadingTemplateUrl && !urlRegex.test(this.props.loadingTemplateUrl)) errors.push('loadingTemplateUrl is not in a valid url format');
+    // if(this.props.templateUrl && !urlRegex.test(this.props.templateUrl)) errors.push('templateUrl is not in a valid url format');
 
     return errors;
   }
@@ -155,12 +154,13 @@ export default class TemplateWebpart extends React.Component<ITemplateWebpartPro
     let mustAuthenticate = false;
     if(this.props.type === 'basic') mustAuthenticate = !this.isAllEqual(this.props, prevProps, ['type', 'username', 'password']);
     else if(this.props.type === 'oauth') {
-      mustAuthenticate = !this.isAllEqual(this.props, prevProps, ['type', 'oauthClientId', 'oauthAuthorityUrl', 'oauthScopes', 'headers']);
+      mustAuthenticate = !this.isAllEqual(this.props, prevProps, ['type', 'msappClientId', 'msappAuthorityUrl', 'msappScopes', 'headers']);
       // TODO: Make expiration check
     } else if(this.props.type === 'msgraph') mustAuthenticate = true;
 
     // Check if data must be retreived
-    const mustFetchData = !this.isAllEqual(this.props, prevProps, ['dataUrl', 'method', 'headers', 'body']) || this.state.data === undefined;
+    let mustFetchData = !this.props.data && (!this.isAllEqual(this.props, prevProps, ['dataUrl', 'method', 'headers', 'body']) || this.state.data === undefined);
+    if(!this.props.data && prevProps?.data) mustFetchData = true;
 
     // Check if rerender is required
     // const mustRerender = !this.isAllEqual(this.props, prevProps, ['templateUrl', 'templateString', 'minHeight', 'maxHeight', 'mockLoading', 'mockAuthenticating']) || mustAuthenticate || mustFetchData
@@ -189,7 +189,19 @@ export default class TemplateWebpart extends React.Component<ITemplateWebpartPro
       this.setState({ error: undefined })
 
       // Retreive the template body
-      const templateBody = this.getTemplateBody(this.props);
+      const templateBody = await this.getTemplateBody(this.props);
+
+      // Parse the template as a HTML element, do this early
+      const templateElement = this.parseTemplateToHTMLElement(templateBody);
+      
+      // Retreive the x-template text from element
+      const xTemplate = this.retreiveXTemplateFromHTML(templateElement);
+
+      // Retreive loading element
+      const loadingTemplateBody = this.parseXLoading(templateElement);
+      if(this.state.loadingTemplateBody !== loadingTemplateBody) {
+        this.setState({ loadingTemplateBody: loadingTemplateBody, loadingMessage: '' })
+      }
 
       // Authenticate the request
       let authHeaders = undefined;
@@ -197,28 +209,21 @@ export default class TemplateWebpart extends React.Component<ITemplateWebpartPro
         authHeaders = await this.authenticate(this.props);
       }
       
-
-      // Retreive data
+      // Retreive or parse data
       let data = this.state.data;
-      if(mustFetchData) {
-        data = mustFetchData ? await this.fetchData(this.props, authHeaders) : this.state.data;
+      if(mustFetchData) data = mustFetchData ? await this.fetchData(this.props, authHeaders) : this.state.data;
+      else if(this.props.data) {
+        data = JSON.parse(this.props.data)
       }
       
       let html = this.state.html;
       if(mustRerender) {
-        // Parse the template as a HTML element
-        const templateElement = this.parseTemplateToHTMLElement(templateBody);
-
-        // Retreive the x-template text from element
-        const xTemplate = this.retreiveXTemplateFromHTML(templateElement);
-
         // Register x-head script elements
         this.registerXHeadScripts(templateElement);
 
         // Run any x-inject code
         this.runXInjectCode(templateElement);
 
-        // Run the rerender
         html = mustRerender ? this.renderTemplate(xTemplate, data) : this.state.html;
       }
 
@@ -237,9 +242,25 @@ export default class TemplateWebpart extends React.Component<ITemplateWebpartPro
     }
   }
 
-  private getTemplateBody(props : ITemplateWebpartProps) {
-    // TODO: Add support for URL
-    return props.templateString;
+  private async getTemplateBody(props : ITemplateWebpartProps) {
+    // If the template is in an url
+    let templateString = props.templateString;
+    if(props.templateUrl) {
+      try {
+        this.debug(`Downloading template from ${props.templateUrl}`)
+
+        this.setState({ isLoading: true, loadingMessage: 'Downloading template' })
+        const { data } = await axios.get(props.templateUrl);
+        this.debug('Template download response', data)
+        templateString = data;
+      } catch (err) {
+        this.debug(`Error downloading template from url ${props.templateUrl}`, props.templateUrl);
+      }
+    }
+
+    if(!templateString) throw new Error('Unable to find a valid template');
+    this.setState({ isLoading: false, loadingMessage: '' })
+    return templateString;
   }
 
   private parseTemplateToHTMLElement(template: string) {
@@ -257,6 +278,26 @@ export default class TemplateWebpart extends React.Component<ITemplateWebpartPro
     this.debug(`Found ${elements.length} elements`, elements)
 
     return elements[0].innerHTML;
+  }
+
+  private parseXLoading(templateElement : HTMLElement) : string {
+    // Register elements
+    this.debug('Retreiving x-loading')
+    let loadingElement = '';
+    const elements = templateElement.querySelectorAll("[type='x-loading']");
+    let debugMessage = `Found ${elements.length} elements`;
+    if(elements.length > 0) debugMessage += ', only the first will be used';
+    this.debug(debugMessage, elements)
+    
+    if(elements.length > 0) {
+      if(!elements[0].innerHTML) {
+        this.debug('The loading element is skipped because it is empty');
+      } else {
+        loadingElement = elements[0].innerHTML;
+      }
+    }
+
+    return loadingElement;
   }
 
   private registerXHeadScripts(templateElement : HTMLElement) : void {
@@ -318,21 +359,27 @@ export default class TemplateWebpart extends React.Component<ITemplateWebpartPro
     let authHeaders = undefined;
     if(this.props.type === 'msgraph') {
       this.debug('Retreiving MSGraph token');
-      // const client = await this.props.webpartContext.msGraphClientFactory.getClient());
+      const tokenProvider = await this.props.webpartContext.aadTokenProviderFactory.getTokenProvider();
+      const token = await tokenProvider.getToken('https://graph.microsoft.com/');
+      if(!token) throw new Error('Could not retreive a Graph token from SharePoint context')
+
+      authHeaders = {
+        Authorization: `Bearer ${token}`
+      }
     }
     else if(this.props.type === 'oauth') {
       const client = new msal.PublicClientApplication({
         auth: {
-          clientId: this.props.oauthClientId,
-          authority: this.props.oauthAuthorityUrl,
+          clientId: this.props.msappClientId,
+          authority: this.props.msappAuthorityUrl,
         },
       })
   
-      const scopes = this.props.oauthScopes.split('\n');
+      const scopes = this.props.msappScopes.split('\n');
   
       this.debug('Authenticating');
-      this.debug('ClientID', this.props.oauthClientId);
-      this.debug('Authority URL', this.props.oauthAuthorityUrl);
+      this.debug('ClientID', this.props.msappClientId);
+      this.debug('Authority URL', this.props.msappAuthorityUrl);
       this.debug('Scopes', scopes);
       
       // Attempt to retreive the active account
@@ -427,7 +474,6 @@ export default class TemplateWebpart extends React.Component<ITemplateWebpartPro
     return data;
   }
 
-
   /*
     Rendering
   */
@@ -449,7 +495,7 @@ export default class TemplateWebpart extends React.Component<ITemplateWebpartPro
   }
 
   public render(): React.ReactElement<ITemplateWebpartProps> {
-    if(this.allErrors().length > 0 && !this.props.mockLoading && !this.props.mockAuthenticating) {
+    if(this.allErrors().length > 0 && !this.props.mockLoading) {
       return (
         <div className={styles.error} style={this.baseStyle()}>
           <h2>Feil har oppstått ({this.allErrors().length})</h2>
@@ -468,18 +514,24 @@ export default class TemplateWebpart extends React.Component<ITemplateWebpartPro
       )
     }
 
-    if(this.state.isLoading || this.props.mockLoading || this.props.mockAuthenticating) {
+    if(this.state.isLoading || this.props.mockLoading) {
 
-      let message = 'Loading';
-      if(this.state.isAuthenticating || this.props.mockAuthenticating) message = 'Authenticating';
+      let message = this.state.loadingMessage || 'Loading'
 
-      return (
-        <div className={styles.loading} style={this.baseStyle()}>
-          { this.props.loadingType === 'spinner' && <Spinner size={SpinnerSize.large} />}
-          { this.props.loadingType === 'skeleton' && <Shimmer height="200px" width="100%" style={{width: '100%'}} />}
-          { message }
-        </div>
-      )
+      if(this.state.loadingTemplateBody) {
+        return (
+          <div style={this.baseStyle()} dangerouslySetInnerHTML={{__html: this.state.loadingTemplateBody || ''}}>
+          </div>
+        )
+      } else {
+        return (
+          <div className={styles.loading} style={this.baseStyle()}>
+            { this.props.loadingType === 'spinner' && <Spinner size={SpinnerSize.large} />}
+            { this.props.loadingType === 'skeleton' && <Shimmer height="200px" width="100%" style={{width: '100%'}} />}
+            { message }
+          </div>
+        )
+      }
     }
 
     return (
