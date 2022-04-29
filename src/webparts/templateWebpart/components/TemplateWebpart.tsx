@@ -4,7 +4,6 @@ import { ITemplateWebpartProps } from './ITemplateWebpartProps';
 import { isEqual, sortBy, times } from 'lodash'
 import Sjablong from 'sjablong'
 import handlebars from 'handlebars';
-import template from './Template.js'
 import { nanoid } from 'nanoid';
 import axios, { AxiosRequestConfig } from 'axios';
 import { Shimmer, Spinner, SpinnerSize } from 'office-ui-fabric-react';
@@ -56,21 +55,12 @@ export default class TemplateWebpart extends React.Component<ITemplateWebpartPro
   public componentDidMount = async () => {
     this.debug('=== Webpart Mounted ===');
     this.debug('Props', this.props)
-
-    const element = document.createElement('div')
-    element.innerHTML = template;
-    console.log('Element', element)
-
     await this.runActions(undefined, undefined);
   }
 
   // Runs data for the components updates and triggers a re-render
   public componentDidUpdate = async (prevProps : ITemplateWebpartProps, prevState : ITemplateWebpartState) => {
     this.debug('=== Webpart Updated ===');
-    // this.debug('PrevProps', prevProps)
-    // this.debug('Props', this.props)
-    // this.debug('State', this.state)
-
     await this.runActions(prevProps, prevState);
   }
 
@@ -156,7 +146,10 @@ export default class TemplateWebpart extends React.Component<ITemplateWebpartPro
     else if(this.props.type === 'oauth') {
       mustAuthenticate = !this.isAllEqual(this.props, prevProps, ['type', 'msappClientId', 'msappAuthorityUrl', 'msappScopes', 'headers']);
       // TODO: Make expiration check
-    } else if(this.props.type === 'msgraph') mustAuthenticate = true;
+    } else if(this.props.type === 'msgraph') {
+      // MS Graph can always reauthenticate as the SharePoint library does this automatically
+      mustAuthenticate = true;
+    } 
 
     // Check if data must be retreived
     let mustFetchData = !this.props.data && (!this.isAllEqual(this.props, prevProps, ['dataUrl', 'method', 'headers', 'body']) || this.state.data === undefined);
@@ -218,6 +211,7 @@ export default class TemplateWebpart extends React.Component<ITemplateWebpartPro
       
       let html = this.state.html;
       if(mustRerender) {
+        console.log('Rerendering');
         // Register x-head script elements
         this.registerXHeadScripts(templateElement);
 
@@ -362,7 +356,7 @@ export default class TemplateWebpart extends React.Component<ITemplateWebpartPro
       const tokenProvider = await this.props.webpartContext.aadTokenProviderFactory.getTokenProvider();
       const token = await tokenProvider.getToken('https://graph.microsoft.com/');
       if(!token) throw new Error('Could not retreive a Graph token from SharePoint context')
-
+    
       authHeaders = {
         Authorization: `Bearer ${token}`
       }
