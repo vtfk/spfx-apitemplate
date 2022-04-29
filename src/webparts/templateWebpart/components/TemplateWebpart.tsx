@@ -36,7 +36,7 @@ export default class TemplateWebpart extends React.Component<ITemplateWebpartPro
   /*
     State
   */
-  state = {
+  public state = {
     id: nanoid(),
     isAuthenticating: false,
     isLoading: false,
@@ -53,7 +53,7 @@ export default class TemplateWebpart extends React.Component<ITemplateWebpartPro
     LifeCycle hooks
   */
   // Runs only when the component first loads
-  componentDidMount = async () => {
+  public componentDidMount = async () => {
     this.debug('=== Webpart Mounted ===');
     this.debug('Props', this.props)
 
@@ -65,7 +65,7 @@ export default class TemplateWebpart extends React.Component<ITemplateWebpartPro
   }
 
   // Runs data for the components updates and triggers a re-render
-  componentDidUpdate = async (prevProps : ITemplateWebpartProps, prevState : ITemplateWebpartState) => {
+  public componentDidUpdate = async (prevProps : ITemplateWebpartProps, prevState : ITemplateWebpartState) => {
     this.debug('=== Webpart Updated ===');
     // this.debug('PrevProps', prevProps)
     // this.debug('Props', this.props)
@@ -77,12 +77,12 @@ export default class TemplateWebpart extends React.Component<ITemplateWebpartPro
   /*
     Functions
   */
-  debug(...args : any[]) {
+  private debug(...args : any[]) {
     if(!this.props?.debug) return;
     console.log(...args)
   }
 
-  isAllEqual(obj1 : Object, obj2 : Object, properties: string[]) : Boolean {
+  private isAllEqual(obj1 : Object, obj2 : Object, properties: string[]) : Boolean {
     if(!obj1 || !obj2 || !properties) return false;
 
     let isAllEqual = true;
@@ -263,9 +263,9 @@ export default class TemplateWebpart extends React.Component<ITemplateWebpartPro
     return templateString;
   }
 
-  private parseTemplateToHTMLElement(template: string) {
+  private parseTemplateToHTMLElement(templateString: string) {
     const element = document.createElement('html')
-    element.innerHTML = template;
+    element.innerHTML = templateString;
     return element;
   }
 
