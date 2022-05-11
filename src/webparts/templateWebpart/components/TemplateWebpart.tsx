@@ -109,11 +109,13 @@ export default class TemplateWebpart extends React.Component<ITemplateWebpartPro
   }
 
   private async runActions(prevProps : ITemplateWebpartProps, prevState : ITemplateWebpartState) {
-    /*
-      If there are errors, just return
-    */
-    // if(this.state.error) return;
+    // If loading there is no
     if(this.state.isLoading || this.props.mockLoading) return;
+    // If the props is identical to the last run there is not necessary to run again
+    if(isEqual(prevProps, this.props)) {
+      this.debug('The current and previous props are identical, no actions needed');
+      return;
+    }
 
     /*
       Validate the properties
@@ -127,16 +129,36 @@ export default class TemplateWebpart extends React.Component<ITemplateWebpartPro
     const sortedErrors = sortBy(propErrors, (i) => i)
     previousErrors = sortBy(previousErrors, (i) => i)
 
-    // If the errors are not the same, update the store
-    if(!isEqual(sortedErrors, previousErrors)) {
-      this.setState({
-        propErrors
-      })
+    // If there are existing errors and they are the same as the previous error
+    if (propErrors.length > 0 && isEqual(sortedErrors, previousErrors)) {
+      this.debug('There are errors, returning early')
+      return
+    }
+    // If there is errors and they are not identical to the previous errors 
+    else if (propErrors.length > 0 && !isEqual(sortedErrors, previousErrors)) {
+      this.debug('There are one or more new errors', propErrors);
+      this.setState({ propErrors })
       return;
     }
+    // If there was an error, but it has been resolved
+    else if (propErrors.length === 0 && previousErrors.length > 0) {
+      this.debug('All prop-errors has been resolved')
+      this.setState({propErrors: []})
+    }
+
+    // If the errors are not the same, update the store
+    // if((propErrors.length > 0 || previousErrors.length > 0) && !isEqual(sortedErrors, previousErrors)) {
+    //   this.setState({
+    //     propErrors
+    //   })
+    //   return;
+    // }
+
+
+
     // If there are prop errors there is no need to continue
     if(propErrors.length > 0) return;
-
+    console.log('No errors')
     /*
       Determine what actions must be done
     */
@@ -160,9 +182,12 @@ export default class TemplateWebpart extends React.Component<ITemplateWebpartPro
     const mustRerender = true;
 
     if(isEqual(prevProps, this.props)) {
+      console.log('Prev', prevProps);
+      console.log('Props', this.props)
       this.debug('The current and previous props are identical, no actions needed');
       return;
     }
+    console.log('DOING SOMETHING')
 
     if(!mustAuthenticate && !mustFetchData && !mustRerender) {
       this.debug('No actions needed, returning early');
