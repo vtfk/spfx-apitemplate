@@ -146,16 +146,6 @@ export default class TemplateWebpart extends React.Component<ITemplateWebpartPro
       this.setState({propErrors: []})
     }
 
-    // If the errors are not the same, update the store
-    // if((propErrors.length > 0 || previousErrors.length > 0) && !isEqual(sortedErrors, previousErrors)) {
-    //   this.setState({
-    //     propErrors
-    //   })
-    //   return;
-    // }
-
-
-
     // If there are prop errors there is no need to continue
     if(propErrors.length > 0) return;
     console.log('No errors')
