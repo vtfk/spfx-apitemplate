@@ -395,7 +395,7 @@ export default class TemplateWebpart extends React.Component<ITemplateWebpartPro
     })
 
     // Variables
-    let authHeaders = undefined;
+    let authHeaders : any = {};
     let loginResponse = undefined;
     let expiresAtISO : String = new Date(new Date().setTime(new Date().getTime() + 1 * 60 * 60 * 1000)).toISOString();
 
@@ -409,6 +409,7 @@ export default class TemplateWebpart extends React.Component<ITemplateWebpartPro
       const token = await tokenProvider.getToken('https://graph.microsoft.com/');
       if(!token) throw new Error('Could not retreive a Graph token from SharePoint context')
       this.debug('Received token', token)
+
       authHeaders.Authorization = `Bearer ${token}`
     }
     else if(props.type === 'msapp') {
@@ -443,9 +444,7 @@ export default class TemplateWebpart extends React.Component<ITemplateWebpartPro
         }
         loginResponse = await client.acquireTokenSilent(silentRequest)
         console.log('Silent response', loginResponse);
-        authHeaders = {
-          'Authorization': `Bearer ${loginResponse.accessToken}`
-        }
+        authHeaders.Authorization = `Bearer ${loginResponse.accessToken}`
       }
       
       // Popup login
@@ -468,9 +467,7 @@ export default class TemplateWebpart extends React.Component<ITemplateWebpartPro
         if(!loginResponse.accessToken) throw new Error('Login request did not respond with a AccessToken');
 
         this.debug('Login popup response', loginResponse)
-        authHeaders = {
-          'Authorization': `Bearer ${loginResponse.accessToken}`
-        }
+        authHeaders.Authorization = `Bearer ${loginResponse.accessToken}`
       }
 
       // Attempt to figure out when the token expires
