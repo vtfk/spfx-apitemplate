@@ -20,6 +20,8 @@ export interface ITemplateWebpartState {
   bearerToken: string;
   loadingTemplateBody: string;
   html: string;
+  authHeaders: object,
+  authExpiration: Date
 }
 
 const urlRegex = /((\w+:\/\/)[-a-zA-Z0-9:@;?&=\/%\+\.\*!'\(\),\$_\{\}\^~\[\]`#|]+)/g
@@ -45,7 +47,9 @@ export default class TemplateWebpart extends React.Component<ITemplateWebpartPro
     bearerToken: undefined,
     data: undefined,
     loadingTemplateBody: '',
-    html: ''
+    html: '',
+    authHeaders: undefined,
+    authExpiration: undefined
   }
 
   /*
@@ -65,13 +69,15 @@ export default class TemplateWebpart extends React.Component<ITemplateWebpartPro
   }
 
   /*
-    Functions
+    Support function
   */
+  // Console.logs if the debug-prop is true
   private debug(...args : any[]) {
     if(!this.props?.debug) return;
     console.log(...args)
   }
 
+  // Check if properties between two objects are identical
   private isAllEqual(obj1 : Object, obj2 : Object, properties: string[]) : Boolean {
     if(!obj1 || !obj2 || !properties) return false;
 
@@ -86,28 +92,33 @@ export default class TemplateWebpart extends React.Component<ITemplateWebpartPro
     return isAllEqual;
   }
 
+  // Validate all props
   private async validateProps (props : ITemplateWebpartProps) {
     const errors = [];
 
-    if(!this.props.type) errors.push('type must be provided');
-    if(!this.props.method) errors.push('method must be provided');
-    if(this.props.type === 'basic') {
-      if(!this.props.username) errors.push('username must be provided when authentication basic is used');
-      if(!this.props.password) errors.push('password must be provided when authentication basic is used');
-    } else if (this.props.type === 'msapp') {
-      if(!this.props.msappClientId) errors.push('msappClientId must be provided when authentication msapp is used');
-      if(!this.props.msappAuthorityUrl) errors.push('msappAuthorityUrl must be provided when authentication msapp is used');
-      if(!this.props.msappScopes) errors.push('msappScopes must be provided when authentication msapp is used');
-      // if(!urlRegex.test(this.props.msappAuthorityUrl)) errors.push('msappAuthorityUrl is not in a valid url format');
+    if(!props.type) errors.push('type must be provided');
+    if(!props.method) errors.push('method must be provided');
+    if(props.type === 'basic') {
+      if(!props.username) errors.push('username must be provided when authentication basic is used');
+      if(!props.password) errors.push('password must be provided when authentication basic is used');
+    } else if (props.type === 'msapp') {
+      if(!props.msappClientId) errors.push('msappClientId must be provided when authentication msapp is used');
+      if(!props.msappAuthorityUrl) errors.push('msappAuthorityUrl must be provided when authentication msapp is used');
+      if(!props.msappScopes) errors.push('msappScopes must be provided when authentication msapp is used');
+      // if(!urlRegex.test(props.msappAuthorityUrl)) errors.push('msappAuthorityUrl is not in a valid url format');
     }
-    if(!this.props.dataUrl) errors.push('dataUrl must be provided');
-    // if(this.props.dataUrl && !urlRegex.test(this.props.dataUrl)) errors.push('dataUrl is not in a valid url format');
-    if(!this.props.templateUrl && !this.props.templateString) errors.push('templateUrl or templateString must be provided');
-    // if(this.props.templateUrl && !urlRegex.test(this.props.templateUrl)) errors.push('templateUrl is not in a valid url format');
+    if(!props.dataUrl) errors.push('dataUrl must be provided');
+    // if(props.dataUrl && !urlRegex.test(props.dataUrl)) errors.push('dataUrl is not in a valid url format');
+    if(!props.templateUrl && !props.templateString) errors.push('templateUrl or templateString must be provided');
+    // if(props.templateUrl && !urlRegex.test(props.templateUrl)) errors.push('templateUrl is not in a valid url format');
 
     return errors;
   }
 
+  /*
+    Functions
+  */
+  // Main function that run every needed action
   private async runActions(prevProps : ITemplateWebpartProps, prevState : ITemplateWebpartState) {
     // If loading there is no
     if(this.state.isLoading || this.props.mockLoading) return;
@@ -148,28 +159,36 @@ export default class TemplateWebpart extends React.Component<ITemplateWebpartPro
 
     // If there are prop errors there is no need to continue
     if(propErrors.length > 0) return;
-    console.log('No errors')
+
     /*
       Determine what actions must be done
     */
-    // Check if it is time to authenticate again
     let mustAuthenticate = false;
-    if(this.props.type === 'basic') mustAuthenticate = !this.isAllEqual(this.props, prevProps, ['type', 'username', 'password']);
-    else if(this.props.type === 'oauth') {
-      mustAuthenticate = !this.isAllEqual(this.props, prevProps, ['type', 'msappClientId', 'msappAuthorityUrl', 'msappScopes', 'headers']);
-      // TODO: Make expiration check
-    } else if(this.props.type === 'msgraph') {
-      // MS Graph can always reauthenticate as the SharePoint library does this automatically
-      mustAuthenticate = true;
-    } 
+    let mustFetchData = false;
+    let mustRerender = true;
+
+    // Check if it is time to authenticate again
+    let authHeaders : any = this.state.authHeaders || {}
+    switch(this.props.type) {
+      case 'basic':
+        mustAuthenticate = !this.isAllEqual(this.props, prevProps, ['username', 'password']);
+        break;
+      case 'msgraph':
+        mustAuthenticate = true;
+        break;
+      case 'msapp':
+        mustAuthenticate = !this.state.authHeaders || !this.isAllEqual(this.props, prevProps, ['type', 'msappClientId', 'msappAuthorityUrl', 'msappScopes', 'headers', 'authHeaders'])
+        // TODO: Make expiration check
+        break;
+    }
 
     // Check if data must be retreived
-    let mustFetchData = !this.props.data && (!this.isAllEqual(this.props, prevProps, ['dataUrl', 'method', 'headers', 'body']) || this.state.data === undefined);
+    mustFetchData = !this.props.data && (!this.isAllEqual(this.props, prevProps, ['dataUrl', 'method', 'headers', 'body']) || this.state.data === undefined);
     if(!this.props.data && prevProps?.data) mustFetchData = true;
 
     // Check if rerender is required
     // const mustRerender = !this.isAllEqual(this.props, prevProps, ['templateUrl', 'templateString', 'minHeight', 'maxHeight', 'mockLoading', 'mockAuthenticating']) || mustAuthenticate || mustFetchData
-    const mustRerender = true;
+    mustRerender = true;
 
     if(isEqual(prevProps, this.props)) {
       console.log('Prev', prevProps);
@@ -177,7 +196,6 @@ export default class TemplateWebpart extends React.Component<ITemplateWebpartPro
       this.debug('The current and previous props are identical, no actions needed');
       return;
     }
-    console.log('DOING SOMETHING')
 
     if(!mustAuthenticate && !mustFetchData && !mustRerender) {
       this.debug('No actions needed, returning early');
@@ -212,7 +230,6 @@ export default class TemplateWebpart extends React.Component<ITemplateWebpartPro
       }
 
       // Authenticate the request
-      let authHeaders = undefined;
       if(mustAuthenticate) {
         authHeaders = await this.authenticate(this.props);
       }
@@ -224,6 +241,7 @@ export default class TemplateWebpart extends React.Component<ITemplateWebpartPro
         data = JSON.parse(this.props.data)
       }
       
+      // Render
       let html = this.state.html;
       if(mustRerender) {
         console.log('Rerendering');
@@ -241,6 +259,7 @@ export default class TemplateWebpart extends React.Component<ITemplateWebpartPro
         data,
         html,
         isLoading: false,
+        authHeaders
       })
     } catch (err) {
       console.error('An error has occured', err)
@@ -334,7 +353,12 @@ export default class TemplateWebpart extends React.Component<ITemplateWebpartPro
     }
   }
 
+  /**
+   * Retreives all x-inject elements in the template and runs them
+   */
   private runXInjectCode(templateElement : HTMLElement) : void {
+    // Handlebars must be made available here so that the eval-scripts has access to it
+    /* eslint-disable-next-line */
     const Handlebars = handlebars;
     /*
       Run all injection scripts
@@ -366,29 +390,31 @@ export default class TemplateWebpart extends React.Component<ITemplateWebpartPro
     })
 
     let authHeaders = undefined;
-    if(this.props.type === 'msgraph') {
+    if( props.type === 'basic') {
+      authHeaders.Authorization = 'Basic ' + btoa(props.username + ':' + props.password);
+    }
+    else if(props.type === 'msgraph') {
       this.debug('Retreiving MSGraph token');
-      const tokenProvider = await this.props.webpartContext.aadTokenProviderFactory.getTokenProvider();
+      const tokenProvider = await props.webpartContext.aadTokenProviderFactory.getTokenProvider();
       const token = await tokenProvider.getToken('https://graph.microsoft.com/');
       if(!token) throw new Error('Could not retreive a Graph token from SharePoint context')
-    
-      authHeaders = {
-        Authorization: `Bearer ${token}`
-      }
+      this.debug('Received token', token)
+      authHeaders.Authorization = `Bearer ${token}`
     }
-    else if(this.props.type === 'oauth') {
+    else if(props.type === 'msapp') {
+      this.debug('Authenticating using Microsoft Azure App Registration');
       const client = new msal.PublicClientApplication({
         auth: {
-          clientId: this.props.msappClientId,
-          authority: this.props.msappAuthorityUrl,
+          clientId: props.msappClientId,
+          authority: props.msappAuthorityUrl,
         },
       })
   
-      const scopes = this.props.msappScopes.split('\n');
+      const scopes = props.msappScopes.split('\n');
   
       this.debug('Authenticating');
-      this.debug('ClientID', this.props.msappClientId);
-      this.debug('Authority URL', this.props.msappAuthorityUrl);
+      this.debug('ClientID', props.msappClientId);
+      this.debug('Authority URL', props.msappAuthorityUrl);
       this.debug('Scopes', scopes);
       
       // Attempt to retreive the active account
@@ -416,8 +442,8 @@ export default class TemplateWebpart extends React.Component<ITemplateWebpartPro
       if(!authHeaders) {
         // Attempt to figure out a login hint from webpartContext
         let loginHint = '';
-        if(this.props.webpartContext) {
-          loginHint = this.props.webpartContext.pageContext.user.loginName || this.props.webpartContext.pageContext.user.email;
+        if(props.webpartContext) {
+          loginHint = props.webpartContext.pageContext.user.loginName || props.webpartContext.pageContext.user.email;
         }
         console.log('LoginHint', loginHint)
     
