@@ -21,7 +21,7 @@ export interface ITemplateWebpartState {
   loadingTemplateBody: string;
   html: string;
   authHeaders: object,
-  authExpiration: Date
+  authExpirationISO: String
 }
 
 const urlRegex = /((\w+:\/\/)[-a-zA-Z0-9:@;?&=\/%\+\.\*!'\(\),\$_\{\}\^~\[\]`#|]+)/g
@@ -49,7 +49,7 @@ export default class TemplateWebpart extends React.Component<ITemplateWebpartPro
     loadingTemplateBody: '',
     html: '',
     authHeaders: undefined,
-    authExpiration: undefined
+    authExpirationISO: undefined
   }
 
   /*
@@ -177,18 +177,23 @@ export default class TemplateWebpart extends React.Component<ITemplateWebpartPro
         mustAuthenticate = true;
         break;
       case 'msapp':
-        mustAuthenticate = !this.state.authHeaders || !this.isAllEqual(this.props, prevProps, ['type', 'msappClientId', 'msappAuthorityUrl', 'msappScopes', 'headers', 'authHeaders'])
-        // TODO: Make expiration check
+        mustAuthenticate = !authHeaders || !this.isAllEqual(this.props, prevProps, ['type', 'msappClientId', 'msappAuthorityUrl', 'msappScopes', 'headers', 'authHeaders'])
         break;
+    }
+    // Attempt to figure out if the authToken has expired
+    if(this.state.authExpirationISO && typeof this.state.authExpirationISO === 'string') {
+      try {
+        const expirationTimestamp = new Date(this.state.authExpirationISO);
+        if(expirationTimestamp < new Date()) {
+          this.debug('Authentication token has expired and must be renewed');
+          mustAuthenticate = true;
+        }
+      } catch {}
     }
 
     // Check if data must be retreived
     mustFetchData = !this.props.data && (!this.isAllEqual(this.props, prevProps, ['dataUrl', 'method', 'headers', 'body']) || this.state.data === undefined);
     if(!this.props.data && prevProps?.data) mustFetchData = true;
-
-    // Check if rerender is required
-    // const mustRerender = !this.isAllEqual(this.props, prevProps, ['templateUrl', 'templateString', 'minHeight', 'maxHeight', 'mockLoading', 'mockAuthenticating']) || mustAuthenticate || mustFetchData
-    mustRerender = true;
 
     if(isEqual(prevProps, this.props)) {
       console.log('Prev', prevProps);
@@ -197,7 +202,7 @@ export default class TemplateWebpart extends React.Component<ITemplateWebpartPro
       return;
     }
 
-    if(!mustAuthenticate && !mustFetchData && !mustRerender) {
+    if(!mustAuthenticate && !mustFetchData) {
       this.debug('No actions needed, returning early');
       return;
     }
@@ -389,7 +394,12 @@ export default class TemplateWebpart extends React.Component<ITemplateWebpartPro
       isAuthenticating: true
     })
 
+    // Variables
     let authHeaders = undefined;
+    let loginResponse = undefined;
+    let expiresAtISO : String = new Date(new Date().setTime(new Date().getTime() + 1 * 60 * 60 * 1000)).toISOString();
+
+    // Auth handlers
     if( props.type === 'basic') {
       authHeaders.Authorization = 'Basic ' + btoa(props.username + ':' + props.password);
     }
@@ -431,7 +441,7 @@ export default class TemplateWebpart extends React.Component<ITemplateWebpartPro
           account: activeAccount,
           
         }
-        const loginResponse = await client.acquireTokenSilent(silentRequest)
+        loginResponse = await client.acquireTokenSilent(silentRequest)
         console.log('Silent response', loginResponse);
         authHeaders = {
           'Authorization': `Bearer ${loginResponse.accessToken}`
@@ -451,7 +461,7 @@ export default class TemplateWebpart extends React.Component<ITemplateWebpartPro
           scopes: scopes,
         }
         if(loginHint) loginRequest.loginHint = loginHint;
-        const loginResponse = await client.acquireTokenPopup(loginRequest)
+        loginResponse = await client.acquireTokenPopup(loginRequest)
     
         // Validate the response
         if(!loginResponse) throw new Error('Login request did not give a response');
@@ -462,13 +472,20 @@ export default class TemplateWebpart extends React.Component<ITemplateWebpartPro
           'Authorization': `Bearer ${loginResponse.accessToken}`
         }
       }
+
+      // Attempt to figure out when the token expires
+      try {
+        expiresAtISO = loginResponse.expiresOn.toISOString();
+      } catch {}
     }
 
     if(!authHeaders) throw new Error('Could not get any authentication headers')
     this.debug('Auth headers', authHeaders)
+    this.debug('Auth expires at: ' + expiresAtISO)
 
     this.setState({
-      isAuthenticating: false
+      isAuthenticating: false,
+      authExpirationISO: expiresAtISO
     })
     return authHeaders;
   }
