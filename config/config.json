@@ -11,8 +11,5 @@
       ]
     }
   },
-  "externals": {},
-  "localizedResources": {
-    "TemplateWebpartWebPartStrings": "lib/webparts/templateWebpart/loc/{locale}.js"
-  }
+  "externals": {}
 }

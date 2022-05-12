@@ -8,6 +8,7 @@ import { nanoid } from 'nanoid';
 import axios, { AxiosRequestConfig } from 'axios';
 import { Shimmer, Spinner, SpinnerSize } from 'office-ui-fabric-react';
 import * as msal from '@azure/msal-browser'
+import sanitizeObject from '../../../lib/sanitizeObject'
 
 export interface ITemplateWebpartState {
   id: string,
@@ -105,12 +106,12 @@ export default class TemplateWebpart extends React.Component<ITemplateWebpartPro
       if(!props.msappClientId) errors.push('msappClientId must be provided when authentication msapp is used');
       if(!props.msappAuthorityUrl) errors.push('msappAuthorityUrl must be provided when authentication msapp is used');
       if(!props.msappScopes) errors.push('msappScopes must be provided when authentication msapp is used');
-      // if(!urlRegex.test(props.msappAuthorityUrl)) errors.push('msappAuthorityUrl is not in a valid url format');
+      if(!urlRegex.test(props.msappAuthorityUrl)) errors.push('msappAuthorityUrl is not in a valid url format');
     }
     if(!props.dataUrl) errors.push('dataUrl must be provided');
-    // if(props.dataUrl && !urlRegex.test(props.dataUrl)) errors.push('dataUrl is not in a valid url format');
+    if(props.dataUrl && !urlRegex.test(props.dataUrl)) errors.push('dataUrl is not in a valid url format');
     if(!props.templateUrl && !props.templateString) errors.push('templateUrl or templateString must be provided');
-    // if(props.templateUrl && !urlRegex.test(props.templateUrl)) errors.push('templateUrl is not in a valid url format');
+    if(props.templateUrl && !urlRegex.test(props.templateUrl)) errors.push('templateUrl is not in a valid url format');
 
     return errors;
   }
@@ -171,7 +172,7 @@ export default class TemplateWebpart extends React.Component<ITemplateWebpartPro
     let authHeaders : any = this.state.authHeaders || {}
     switch(this.props.type) {
       case 'basic':
-        mustAuthenticate = !this.isAllEqual(this.props, prevProps, ['username', 'password']);
+        mustAuthenticate = !authHeaders || !this.isAllEqual(this.props, prevProps, ['username', 'password']);
         break;
       case 'msgraph':
         mustAuthenticate = true;
@@ -184,6 +185,7 @@ export default class TemplateWebpart extends React.Component<ITemplateWebpartPro
     if(this.state.authExpirationISO && typeof this.state.authExpirationISO === 'string') {
       try {
         const expirationTimestamp = new Date(this.state.authExpirationISO);
+        expirationTimestamp.toISOString();  // This will throw if not valid
         if(expirationTimestamp < new Date()) {
           this.debug('Authentication token has expired and must be renewed');
           mustAuthenticate = true;
@@ -192,15 +194,8 @@ export default class TemplateWebpart extends React.Component<ITemplateWebpartPro
     }
 
     // Check if data must be retreived
-    mustFetchData = !this.props.data && (!this.isAllEqual(this.props, prevProps, ['dataUrl', 'method', 'headers', 'body']) || this.state.data === undefined);
+    mustFetchData = !this.props.data && (!this.state.data || !this.isAllEqual(this.props, prevProps, ['dataUrl', 'method', 'headers', 'body']));
     if(!this.props.data && prevProps?.data) mustFetchData = true;
-
-    if(isEqual(prevProps, this.props)) {
-      console.log('Prev', prevProps);
-      console.log('Props', this.props)
-      this.debug('The current and previous props are identical, no actions needed');
-      return;
-    }
 
     if(!mustAuthenticate && !mustFetchData && !mustRerender) {
       this.debug('No actions needed, returning early');
@@ -235,17 +230,16 @@ export default class TemplateWebpart extends React.Component<ITemplateWebpartPro
       }
 
       // Authenticate the request
-      if(mustAuthenticate) {
-        authHeaders = await this.authenticate(this.props);
-      }
+      if(mustAuthenticate) authHeaders = await this.authenticate(this.props);
       
       // Retreive or parse data
       let data = this.state.data;
-      if(mustFetchData) data = mustFetchData ? await this.fetchData(this.props, authHeaders) : this.state.data;
-      else if(this.props.data) {
-        data = JSON.parse(this.props.data)
-      }
+      if(this.props.data) data = JSON.parse(this.props.data)
+      else if(mustFetchData) data = await this.fetchData(this.props, authHeaders)
       
+      // Sanitize data
+      if(data) data = sanitizeObject(data, { sanitizedText: '[Unsafe, removed]' })
+
       // Render
       let html = this.state.html;
       if(mustRerender) {
@@ -263,14 +257,13 @@ export default class TemplateWebpart extends React.Component<ITemplateWebpartPro
       this.setState({
         data,
         html,
-        isLoading: false,
-        authHeaders
+        isLoading: false
       })
     } catch (err) {
       console.error('An error has occured', err)
       this.setState({
         isLoading: false,
-        error: err.message
+        error: err?.message || 'An unknown error has occured' 
       })
     }
   }
@@ -385,7 +378,7 @@ export default class TemplateWebpart extends React.Component<ITemplateWebpartPro
 
   private renderTemplate(templateString : string, data : object) {
     const templateGenerator = handlebars.compile(templateString)
-    return templateGenerator({ dsData: data })
+    return templateGenerator(data)
   }
 
   private async authenticate(props : ITemplateWebpartProps) {
@@ -442,9 +435,11 @@ export default class TemplateWebpart extends React.Component<ITemplateWebpartPro
           account: activeAccount,
           
         }
-        loginResponse = await client.acquireTokenSilent(silentRequest)
-        console.log('Silent response', loginResponse);
-        authHeaders.Authorization = `Bearer ${loginResponse.accessToken}`
+        try {
+          loginResponse = await client.acquireTokenSilent(silentRequest)
+          console.log('Silent response', loginResponse);
+          authHeaders.Authorization = `Bearer ${loginResponse.accessToken}`
+        } catch {}
       }
       
       // Popup login
@@ -482,7 +477,8 @@ export default class TemplateWebpart extends React.Component<ITemplateWebpartPro
 
     this.setState({
       isAuthenticating: false,
-      authExpirationISO: expiresAtISO
+      authExpirationISO: expiresAtISO,
+      authHeaders: authHeaders
     })
     return authHeaders;
   }

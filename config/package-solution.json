@@ -1,25 +1,26 @@
 {
   "$schema": "https://developer.microsoft.com/json-schemas/spfx-build/package-solution.schema.json",
   "solution": {
-    "name": "spfx-template-client-side-solution",
+    "name": "vtfk-api-templates",
     "id": "120f4111-1a54-4aca-b649-1a2858f2d2af",
     "version": "1.0.0.0",
     "includeClientSideAssets": true,
     "skipFeatureDeployment": true,
     "isDomainIsolated": false,
+    "title": "VTFK API Templates",
     "developer": {
-      "name": "",
-      "websiteUrl": "",
+      "name": "Vestfold og Telemark Fylkeskommune",
+      "websiteUrl": "https://www.vtfk.no",
       "privacyUrl": "",
       "termsOfUseUrl": "",
       "mpnId": "Undefined-1.14.0"
     },
     "metadata": {
       "shortDescription": {
-        "default": "spfx-template description"
+        "default": "Hydrates HTML templates with API data"
       },
       "longDescription": {
-        "default": "spfx-template description"
+        "default": "Hydrates HTML templates with API data"
       },
       "screenshotPaths": [],
       "videoUrl": "",
