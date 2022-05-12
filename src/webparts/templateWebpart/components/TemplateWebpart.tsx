@@ -202,7 +202,7 @@ export default class TemplateWebpart extends React.Component<ITemplateWebpartPro
       return;
     }
 
-    if(!mustAuthenticate && !mustFetchData) {
+    if(!mustAuthenticate && !mustFetchData && !mustRerender) {
       this.debug('No actions needed, returning early');
       return;
     }
