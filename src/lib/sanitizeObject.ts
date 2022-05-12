@@ -41,7 +41,7 @@ interface sanitizerOptions {
    * @param {string} value 
    * @returns { string }
    */
-  function sanitize(value) {
+  function sanitize(value : string) : string {
     const unsanitized = value;
     let sanitized = DOMPurify.sanitize(value);
 
@@ -51,7 +51,7 @@ interface sanitizerOptions {
   }
 
   // Recursive function
-  function recurse(obj, key, parent, level) {
+  function recurse(obj : object, key : string, parent : object, level : number) {
     // If object, recurse
     level++;
     if(!obj) return;
