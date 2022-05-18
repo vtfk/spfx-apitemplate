@@ -48,7 +48,6 @@
           let currentTab = $(this).attr('href');
           $('.tabs-content>div').hide();
           $(currentTab).show();
-          console.log(currentTab);
           return false;
         });
         $('div.items a').click(function (e) {
@@ -69,8 +68,8 @@
           $.each(events, function (i, event) {
             let end = new Date($(event).data('event-end'));
             if (end < now) {
-              console.log("Removed ended event", $(event).data('event-title'), 'ended at', $(event).data(
-                'event-end'));
+              // console.log("Removed ended event", $(event).data('event-title'), 'ended at', $(event).data(
+              //   'event-end'));
               $(event).remove();
             }
           })
