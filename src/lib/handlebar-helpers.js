@@ -12,6 +12,49 @@ export default {
   gte: (v1, v2) => v1 >= v2,
   and: (...args) => Array.prototype.slice.call(args, 0, args.length - 1).every(val => !!val),
   or: (...args) => Array.prototype.slice.call(args, 0, args.length - 1).some(val => !!val),
+  cond: (v1, operator, v2) => {
+
+    // Make sure that the operator is correctly formatted
+    const element = document.createElement('input');
+    element.innerHTML = operator;
+    operator = element.textContent;
+
+    // Switch to the matching collection
+    switch(operator.toUpperCase()) {
+      case '==':
+      case 'EQ':
+        return v1 == v2;
+      case '===':
+      case 'SEQ':
+        return v1 === v2;
+      case '!=':
+      case 'NE':
+        return v1 != v2;
+      case '!==':
+      case 'SNE':
+        return v1 !== v2;
+      case '<':
+      case 'LT':
+        return v1 < v2;
+      case '>':
+      case 'GT':
+        return v1 > v2;
+      case '<=':
+      case 'LE':
+        return v1 <= v2;
+      case '>=':
+      case 'GE':
+        return v1 >= v2;
+      case '||':
+      case 'OR':
+        return v1 || v2;
+      case '&&':
+      case 'AND':
+        return v1 && v2;
+      default:
+        throw new Error(`Operator '${operator}' is not valid`)
+    }
+  },
   variable: (varName, varValue, options) => {
     options.data.root[varName] = varValue
   },
@@ -67,6 +110,10 @@ export default {
     if (!obj) return false
     const regex = new RegExp(text, 'i')
     return regex.test(JSON.stringify(obj))
+  },
+  concat: (firstpart, secondpart) => {
+    if(firstpart.endsWith(secondpart)) return firstpart;
+    return firstpart + secondpart;
   },
   paragraphSplit: (plaintext) => {
     let i; let output = '';

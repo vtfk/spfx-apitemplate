@@ -243,13 +243,15 @@ export default class TemplateWebpart extends React.Component<ITemplateWebpartPro
       // Render
       let html = this.state.html;
       if(mustRerender) {
-        console.log('Rerendering');
+        this.debug('Re-rendering')
+        
         // Register x-head script elements
         this.registerXHeadScripts(templateElement);
 
         // Run any x-inject code
         this.runXInjectCode(templateElement);
-        this.debug('Rendering with data', data)
+
+        // Run the render
         html = this.renderTemplate(xTemplate, data);
       }
 
@@ -437,7 +439,6 @@ export default class TemplateWebpart extends React.Component<ITemplateWebpartPro
         }
         try {
           loginResponse = await client.acquireTokenSilent(silentRequest)
-          console.log('Silent response', loginResponse);
           authHeaders.Authorization = `Bearer ${loginResponse.accessToken}`
         } catch {}
       }
@@ -449,7 +450,7 @@ export default class TemplateWebpart extends React.Component<ITemplateWebpartPro
         if(props.webpartContext) {
           loginHint = props.webpartContext.pageContext.user.loginName || props.webpartContext.pageContext.user.email;
         }
-        console.log('LoginHint', loginHint)
+        this.debug('LoginHint', loginHint)
     
         const loginRequest : msal.PopupRequest = {
           scopes: scopes,
