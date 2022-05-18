@@ -91,4 +91,6 @@ interface sanitizerOptions {
     log(key, 0)
     recurse(obj[key], key, obj, 0)
   }
+
+  return obj
 }

@@ -238,7 +238,7 @@ export default class TemplateWebpart extends React.Component<ITemplateWebpartPro
       else if(mustFetchData) data = await this.fetchData(this.props, authHeaders)
       
       // Sanitize data
-      // if(data) data = sanitizeObject(data, { sanitizedText: '[Unsafe, removed]' })
+      if(data) data = sanitizeObject(data, { sanitizedText: '[Unsafe, removed]' })
 
       // Render
       let html = this.state.html;
