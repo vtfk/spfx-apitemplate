@@ -25,7 +25,7 @@ export interface ITemplateWebpartState {
   authExpirationISO: String
 }
 
-const urlRegex = /((\w+:\/\/)[-a-zA-Z0-9:@;?&=\/%\+\.\*!'\(\),\$_\{\}\^~\[\]`#|]+)/g
+const urlRegex = /((\w+:\/\/)[-a-zA-Z0-9:@;?&=\/%\+\.\*!'\(\),\$_\{\}\^~\[\]`#|]+)/
 
 export default class TemplateWebpart extends React.Component<ITemplateWebpartProps, ITemplateWebpartState> {
   /*
@@ -106,12 +106,12 @@ export default class TemplateWebpart extends React.Component<ITemplateWebpartPro
       if(!props.msappClientId) errors.push('msappClientId must be provided when authentication msapp is used');
       if(!props.msappAuthorityUrl) errors.push('msappAuthorityUrl must be provided when authentication msapp is used');
       if(!props.msappScopes) errors.push('msappScopes must be provided when authentication msapp is used');
-      if(props.msappAuthorityUrl && !!urlRegex.test(props.msappAuthorityUrl)) errors.push('msappAuthorityUrl is not in a valid url format');
+      if(props.msappAuthorityUrl && urlRegex.test(props.msappAuthorityUrl) === false) errors.push('msappAuthorityUrl is not in a valid url format');
     }
-    if(!props.data && !props.dataUrl) errors.push('dataUrl must be provided');
-    if(props.dataUrl && !!urlRegex.test(props.dataUrl)) errors.push('dataUrl is not in a valid url format');
+    if(!props.data && !props.dataUrl) errors.push('dataUrl or data must be provided');
+    if(props.dataUrl && urlRegex.test(props.dataUrl) === false) errors.push('dataUrl is not in a valid url format');
     if(!props.templateUrl && !props.templateString) errors.push('templateUrl or templateString must be provided');
-    if(props.templateUrl && !!urlRegex.test(props.templateUrl)) errors.push('templateUrl is not in a valid url format');
+    if(props.templateUrl && urlRegex.test(props.templateUrl) === false) errors.push('templateUrl is not in a valid url format');
 
     return errors;
   }
@@ -136,7 +136,7 @@ export default class TemplateWebpart extends React.Component<ITemplateWebpartPro
     // Retreive all current prop errors
     const propErrors = await this.validateProps(this.props);
     // Retreive all previous prop errors
-    let previousErrors : String[] = prevState?.propErrors || [];
+    let previousErrors : String[] = prevState?.propErrors || undefined;
     // Sort the error sets
     const sortedErrors = sortBy(propErrors, (i) => i)
     previousErrors = sortBy(previousErrors, (i) => i)
@@ -153,7 +153,7 @@ export default class TemplateWebpart extends React.Component<ITemplateWebpartPro
       return;
     }
     // If there was an error, but it has been resolved
-    else if (propErrors.length === 0 && previousErrors.length > 0) {
+    else if (propErrors.length === 0 && previousErrors?.length > 0) {
       this.debug('All prop-errors has been resolved')
       this.setState({propErrors: []})
     }
