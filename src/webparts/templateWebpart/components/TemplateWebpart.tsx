@@ -108,7 +108,7 @@ export default class TemplateWebpart extends React.Component<ITemplateWebpartPro
       if(!props.msappScopes) errors.push('msappScopes must be provided when authentication msapp is used');
       // if(!urlRegex.test(props.msappAuthorityUrl)) errors.push('msappAuthorityUrl is not in a valid url format');
     }
-    if(!props.dataUrl) errors.push('dataUrl must be provided');
+    if(!props.data && !props.dataUrl) errors.push('dataUrl must be provided');
     // if(props.dataUrl && !urlRegex.test(props.dataUrl)) errors.push('dataUrl is not in a valid url format');
     if(!props.templateUrl && !props.templateString) errors.push('templateUrl or templateString must be provided');
     // if(props.templateUrl && !urlRegex.test(props.templateUrl)) errors.push('templateUrl is not in a valid url format');
