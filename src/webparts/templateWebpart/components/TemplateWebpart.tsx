@@ -111,7 +111,7 @@ export default class TemplateWebpart extends React.Component<ITemplateWebpartPro
     if(!props.dataUrl) errors.push('dataUrl must be provided');
     if(props.dataUrl && !urlRegex.test(props.dataUrl)) errors.push('dataUrl is not in a valid url format');
     if(!props.templateUrl && !props.templateString) errors.push('templateUrl or templateString must be provided');
-    if(props.templateUrl && !urlRegex.test(props.templateUrl)) errors.push('templateUrl is not in a valid url format');
+    // if(props.templateUrl && !urlRegex.test(props.templateUrl)) errors.push('templateUrl is not in a valid url format');
 
     return errors;
   }
@@ -250,7 +250,7 @@ export default class TemplateWebpart extends React.Component<ITemplateWebpartPro
         // Run any x-inject code
         this.runXInjectCode(templateElement);
 
-        html = mustRerender ? this.renderTemplate(xTemplate, data) : this.state.html;
+        html = this.renderTemplate(xTemplate, data);
       }
 
       // Update the state
