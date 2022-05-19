@@ -33,7 +33,6 @@ export default {
         return v1 === v2;
       case '!=':
       case 'NE':
-        console.log(`Is '${v1}' != '${v2}' = ${v1 != v2}`);
         return v1 != v2;
       case '!==':
       case 'SNE':
