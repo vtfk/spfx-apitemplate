@@ -91,6 +91,7 @@
     Handlebars.registerHelper('print_id', function (tabName = "") {
       return tabName.split(" ").join("");
     });
+
     Handlebars.registerHelper('dateDiff', function (startDate, endDate) {
       const diff = (new Date(endDate)) - (new Date(startDate));
 
@@ -102,18 +103,6 @@
       const date = new Date(dateString)
       const subtracted = date.getTime() - (1000 * 3600 * 24 * parseInt(days))
       return (new Date(subtracted)).toISOString()
-    });
-
-    Handlebars.registerHelper('meetingTimeDays', function (startDate, endDate) {
-      const diff = (new Date(endDate)) - (new Date(startDate));
-      const days = Math.floor(diff / (1000 * 3600 * 24))
-
-      if (days === 1) return "Hele dagen"
-      return `${days} hele dager`
-    });
-
-    Handlebars.registerHelper('formatMoment', function (data, format){
-      return data.format(format)
     });
   </script>
 </content>
@@ -274,10 +263,11 @@
 
     .items .items_content {
       margin-left: 90px;
+      padding-top: 5px;
     }
 
     .items_title {
-      padding: 8px 0;
+      display: flex;
       font-weight: 500;
     }
 
@@ -297,17 +287,34 @@
       bottom: 34% !important;
     }
 
-    .dark-icon {
-      color: #333;
+    .info-box {
+      display: flex;
+      flex-direction: column;
+      gap: 0.1rem;
     }
 
-    .join-teams-meeting {
+    .info-group {
+      display: flex;
+    }
+
+    .info-group .info-icon {
+      display: flex;
+      align-items: center;
+      width: 24px;
+      vertical-align: middle;
+    }
+
+    .join-meeting {
       color: #333;
       text-decoration: inherit;
     }
 
-    .join-teams-meeting .ms-Icon {
+    .join-meeting .ms-Icon--TeamsLogoInverse {
       color: #464EB8;
+    }
+
+    .join-meeting .ms-Icon--OutlookLogoInverse {
+      color: #0078D4;
     }
 
     div.items {
@@ -407,67 +414,105 @@
               {{#each events}}
                 {{#unless isCancelled}}
                   <div class="calendar-events items clearfix" data-href="{{webLink}}" data-calendar-type="{{../type}}" data-event-start="{{start.dateTime}}Z"
-                    data-event-end="{{end.dateTime}}Z" data-event-title="{{subject}}" title="Åpne i Outlook">
-                    <div class="show-date">
-                      <div class="event-date-box">
-                        <div class="event-date">
-                          {{ formatMoment (moment (concat  start.dateTime "Z") local=true) "DD. MMM" }}
+                    data-event-end="{{end.dateTime}}Z" data-event-title="{{subject}}">
+                    <!-- Date box -->
+                    <a
+                      href="{{webLink}}"
+                      title="Åpne i Outlook"
+                      alt="Åpne i Outlook"
+                    >
+                      <div class="show-date">
+                        <div class="event-date-box">
+                          <div class="event-date">
+                            {{moment (concat  start.dateTime "Z") format="DD. MMM" lang="nb" }}
+                          </div>
                         </div>
-                      </div>
-                      {{#if (cond (dateDiff (concat start.dateTime "Z") (concat end.dateTime "Z")) ">=" 1)}}
-                        <div class="event-separator"></div>
-                        {{#if isAllDay}}
-                          <div class="event-date-box">
-                            <span class="event-date">
-                              {{ formatMoment (moment (subtractDays (concat  end.dateTime "Z") 1 )) "DD. MMM"}}
-                            </span>
-                          </div>
-                        {{else}}
-                          <div class="event-date-box">
-                            <span class="event-date">
-                              {{ formatMoment (moment (concat  end.dateTime "Z") local=true) "DD. MMM"}}
-                            </span>
-                          </div>
-                        {{/if}}
-                      {{/if}}
-                    </div>
-                    <div class="items_content">
-                      <div class="items_title trim-text">
-                        {{#if (cond (cond onlineMeetingProvider "===" "teamsForBusiness") "&&" onlineMeeting.joinUrl ) }}
-                        <a href="{{onlineMeeting.joinUrl}}" class="join-teams-meeting"
-                          title="Klikk for å bli med i Teams-møte!">
-                          <i class="ms-Icon ms-Icon--TeamsLogoInverse" aria-hidden="true"></i>
-                          {{subject}}
-                        </a>
-                        {{else}}
-                          <span title="{{subject}}">{{subject}}</span>
-                        {{/if}}
-                      </div>
-                      <div class="dateTime">
-                        <span class="cancelled">
+                        {{#if (cond (dateDiff (concat start.dateTime "Z") (concat end.dateTime "Z")) ">=" 1)}}
+                          <div class="event-separator"></div>
                           {{#if isAllDay}}
-                          <i class="ms-Icon ms-Icon--SkypeCircleClock"
-                            title="Heldagshendelse" aria-hidden="true"></i>
-                            <span>
-                              {{ meetingTimeDays (concat start.dateTime "Z") (concat  end.dateTime "Z") }}
-                            </span>
+                            <div class="event-date-box">
+                              <span class="event-date">
+                                {{ moment (subtractDays (concat  end.dateTime "Z") 1 ) format="DD. MMM" lang="nb"}}
+                              </span>
+                            </div>
                           {{else}}
-                          <i class="ms-Icon ms-Icon--Clock" aria-hidden="true"></i>
-                          <span>
-                            {{ formatMoment (moment (moment (concat start.dateTime "Z") local=true)) "HH:mm" }}
-                            -
-                            {{ formatMoment (moment (moment (concat end.dateTime "Z") local=true)) "HH:mm" }}
-                          </span>
+                            <div class="event-date-box">
+                              <span class="event-date">
+                                {{ moment (concat  end.dateTime "Z") format="DD. MMM" lang="nb"}}
+                              </span>
+                            </div>
                           {{/if}}
-                        </span>
+                        {{/if}}
                       </div>
-                      <div class="location">
-                        <span class="cancelled trim-text">
-                          {{#if location.displayName}}
-                            <i class="ms-Icon ms-Icon--POI" aria-hidden="true"></i>
-                            {{ location.displayName }}
+                    </a>
+                    <!-- Content -->
+                    <div class="items_content">
+                      <!-- Info table -->
+                      <div class="info-box">
+                        <!-- Title -->
+                        <div class="info-group">
+                          {{#if (cond (cond onlineMeetingProvider "===" "teamsForBusiness") "&&" onlineMeeting.joinUrl ) }}
+                          <a href="{{onlineMeeting.joinUrl}}" class="join-meeting info-group" title="Klikk for å bli med i Teams-møte!">
+                            <span class="info-icon">
+                              <i class="ms-Icon ms-Icon--TeamsLogoInverse" aria-hidden="true"></i>
+                            </span>
+                            <span class="items_title trim-text">
+                              {{subject}}
+                            </span>
+                          </a>
+                          {{else}}
+                            <a href="{{onlineMeeting.joinUrl}}" class="join-meeting info-group" title="{{subject}}" alt="{{subject}}">
+                              <span class="info-icon">
+                                <i class="ms-Icon ms-Icon--OutlookLogoInverse" aria-hidden="true"></i>
+                              </span>
+                              <span class="items_title trim-text">
+                                {{subject}}
+                              </span>
+                            </a>
                           {{/if}}
-                        </span>
+                        </div>
+                        <div class="info-group">
+                          <span class="info-icon">
+                            {{#if isAllDay}}
+                              <i class="ms-Icon ms-Icon--SkypeCircleClock" title="Heldagshendelse" aria-hidden="true"></i>
+                            {{else}}
+                              <i class="ms-Icon ms-Icon--Clock" aria-hidden="true"></i>
+                            {{/if}}
+                          </span>
+                          <span>
+                            {{#if isAllDay}}
+                              {{#if (cond (dateDiff (concat start.dateTime "Z") (concat  end.dateTime "Z")) "==" 1) }}
+                                Hele dagen
+                              {{else}}
+                                {{ dateDiff (concat start.dateTime "Z") (concat  end.dateTime "Z") }} hele dager
+                              {{/if}}
+                            {{else}}
+                              <span>
+                                {{ moment (concat start.dateTime "Z") format="HH:mm" lang="nb" }}
+                                -
+                                {{ moment (concat end.dateTime "Z") format="HH:mm" lang="nb"  }}
+                              </span>
+                            {{/if}}
+                          </span>
+                        </div>
+                        {{#if (cond this.location.displayName "!=" "") }}
+                          <div class="info-group">
+                            <span class="info-icon"><i class="ms-Icon ms-Icon--POI" aria-hidden="true"></i></span>
+                            <span>{{ location.displayName }}</span>
+                          </div>
+                        {{/if}}
+                        {{#if (includes "oof,workingElsewhere" this.showAs) }}
+                          <div class="info-group">
+                            <span class="info-icon"><i class="ms-Icon ms-Icon--OutOfOffice" aria-hidden="true"></i></span>
+                            <span>
+                              {{#if (cond showAs "===" "oof")}}
+                                Fraværende
+                              {{else if (cond showAs "===" "workingElsewhere")}}
+                                Jobber utenfor kontoret
+                              {{/if}}
+                            </span>
+                          </div>
+                        {{/if}}
                       </div>
                     </div>
                   </div>

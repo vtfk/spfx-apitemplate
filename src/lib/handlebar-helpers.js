@@ -12,6 +12,10 @@ export default {
   gte: (v1, v2) => v1 >= v2,
   and: (...args) => Array.prototype.slice.call(args, 0, args.length - 1).every(val => !!val),
   or: (...args) => Array.prototype.slice.call(args, 0, args.length - 1).some(val => !!val),
+  includes: (v1, v2) => {
+    if(!Array.isArray(v1)) v1 = v1.split(',');
+    return v1.includes(v2);
+  },
   cond: (v1, operator, v2) => {
 
     // Make sure that the operator is correctly formatted
@@ -29,6 +33,7 @@ export default {
         return v1 === v2;
       case '!=':
       case 'NE':
+        console.log(`Is '${v1}' != '${v2}' = ${v1 != v2}`);
         return v1 != v2;
       case '!==':
       case 'SNE':
@@ -51,6 +56,9 @@ export default {
       case '&&':
       case 'AND':
         return v1 && v2;
+      case 'INCLUDES':
+        if(!Array.isArray(v1)) v1 = v1.split(',');
+        return v1.includes(v2);
       default:
         throw new Error(`Operator '${operator}' is not valid`)
     }
