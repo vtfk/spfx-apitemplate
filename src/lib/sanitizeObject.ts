@@ -51,36 +51,36 @@ interface sanitizerOptions {
   }
 
   // Recursive function
-  function recurse(obj : object, key : string, parent : object, level : number) {
+  function recurse(_obj : object, key : string, parent : object, level : number) {
     // If object, recurse
     level++;
-    if(!obj) return;
+    if(!_obj) return;
 
     /*
       Handle different data types
     */
-    const type = typeof obj;
+    const _type = typeof _obj;
     // If array
-    if(Array.isArray(obj)) {
+    if(Array.isArray(_obj)) {
       const itemsToRemove : Array<any> = [];
-      for(let i = 0; i < obj.length; i++) {
-        let itemType = typeof obj[i];
+      for(let i = 0; i < _obj.length; i++) {
+        let itemType = typeof _obj[i];
         
-        if(itemType === 'object') recurse(obj[i], undefined, obj, level);
-        else if(itemType === 'function') itemsToRemove.push(obj[i])
+        if(itemType === 'object') recurse(_obj[i], undefined, _obj, level);
+        else if(itemType === 'function') itemsToRemove.push(_obj[i])
         else parent[key][i] = sanitize(parent[key][i])
       }
 
       parent[key] = parent[key].filter((i) => !itemsToRemove.includes(i));
     }
     // If object
-    else if(type === 'object') {
-      for(const key in obj) {
-        log(key, level)
-        recurse(obj[key], key, obj, level)
+    else if(_type === 'object') {
+      for(let _key in _obj) {
+        log(_key, level)
+        recurse(_obj[_key], _key, _obj, level)
       }
     }
-    else if(type === 'function') delete parent[key];
+    else if(_type === 'function') delete parent[key];
     else {
       parent[key] = sanitize(parent[key])
       log(parent[key], level)
