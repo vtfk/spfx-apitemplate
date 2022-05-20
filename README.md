@@ -25,7 +25,7 @@ A template can consist of the following tags.
 | Tag | Description | Required |
 |---|---|---|
 |```<content type="x-template">```|The HTML template|Yes
-|```<content type="x-head">```|Scripts to inject into ```<head>```|No
+|```<content type="x-head">```|Script or Link elements to inject into the ```<head>``` element|No
 |```<content type="x-inject">```|Runs javascript before rendering, used for registering handlebars-helpers|No
 |```<content type="x-loading">```|HTML that will show insted of the default loading spinner|No
 

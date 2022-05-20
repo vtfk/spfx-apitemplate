@@ -339,7 +339,10 @@ export default class TemplateWebpart extends React.Component<ITemplateWebpartPro
     for (let i = 0; i < elements.length; i++) {
       // Find all script elements 
       const scripts = elements[i].getElementsByTagName('script');
+      // Find all head elements
+      const links = elements[i].getElementsByTagName('link');
 
+      // Register all scripts
       for (let y = 0; y < scripts.length; y++) {
         // Create a new script element, it will not run if just appending the parsed scripts
         const script = document.createElement("script");
@@ -350,6 +353,27 @@ export default class TemplateWebpart extends React.Component<ITemplateWebpartPro
         // Append it to the head
         document.head.appendChild(script);
       }
+
+      // Register all links that has not already been registered
+      if(links.length > 0) {
+        // Retreive all existing links in the head-element
+        const urls = [];
+        const existingLinks = document.head.querySelectorAll('link');
+        existingLinks.forEach((i) => urls.push(i.href));
+
+        // Add all links that are not previously added
+        for (let y = 0; y < links.length; y++) {
+          // Make sure that the link is valid
+          if(!links[y] || !links[y].href) { this.debug(`The links is not valid missing 'href' attribute`); continue; }
+          if(!links[y].rel) { this.debug(`The links is not valid missing 'rel' attribute`); continue; }
+          // Check if the link has been added before
+          if(urls.includes(links[y].href)) continue;
+
+          // Append the link to the head
+          document.head.appendChild(links[y]);
+        }
+      }
+
     }
   }
 
