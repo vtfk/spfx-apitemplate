@@ -359,7 +359,7 @@ export default class TemplateWebpart extends React.Component<ITemplateWebpartPro
         // Retreive all existing links in the head-element
         const urls = [];
         const existingLinks = document.head.querySelectorAll('link');
-        existingLinks.forEach((i) => urls.push(i.href));
+        existingLinks.forEach((link) => urls.push(link.href));
 
         // Add all links that are not previously added
         for (let y = 0; y < links.length; y++) {
