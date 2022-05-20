@@ -1,6 +1,7 @@
 # spfx-template
 
 ## Summary
+A HTML + Handlebar templating webpart
 
 Short summary on functionality and used technologies.
 
