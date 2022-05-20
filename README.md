@@ -1,74 +1,66 @@
 # spfx-template
 
 ## Summary
-A HTML + Handlebar templating webpart
+A HTML + Handlebars templating webpart with API data hydration.
 
-Short summary on functionality and used technologies.
-
-[picture of the solution in action, if possible]
-
-## Used SharePoint Framework Version
-
-![version](https://img.shields.io/badge/version-1.13-green.svg)
-
-## Applies to
-
-- [SharePoint Framework](https://aka.ms/spfx)
-- [Microsoft 365 tenant](https://docs.microsoft.com/en-us/sharepoint/dev/spfx/set-up-your-developer-tenant)
-
-> Get your own free development tenant by subscribing to [Microsoft 365 developer program](http://aka.ms/o365devprogram)
-
-## Prerequisites
-
-> Any special pre-requisites?
-
-## Solution
-
-Solution|Author(s)
---------|---------
-folder name | Author details (name, company, twitter alias with link)
-
-## Version history
-
-Version|Date|Comments
--------|----|--------
-1.1|March 10, 2021|Update comment
-1.0|January 29, 2021|Initial release
-
-## Disclaimer
-
-**THIS CODE IS PROVIDED *AS IS* WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING ANY IMPLIED WARRANTIES OF FITNESS FOR A PARTICULAR PURPOSE, MERCHANTABILITY, OR NON-INFRINGEMENT.**
-
----
-
-## Minimal Path to Awesome
-
-- Clone this repository
-- Ensure that you are at the solution folder
-- in the command-line run:
-  - **npm install**
-  - **gulp serve**
-
-> Include any additional steps as needed.
+## How it works
+1. A template is created for the webpart
+1. Data is retreived from an API
+1. The webpart hydrates template with the data
+<br>
 
 ## Features
+* Anynomous, Basic, Graph and Microsoft App Registration auth
+* Custom handlebar-helpers injection
+* Custom header-script injection
+* API Data sanitizing before HTML rendering
+* External template hosting
+* Webpart height and width customization
+* Descriptive error messages
+* Debug mode
 
-Description of the extension that expands upon high-level summary above.
+## Templates
+A template can consist of the following tags.
 
-This extension illustrates the following concepts:
+| Tag | Description | Required |
+|---|---|---|
+|```<content type="x-template">```|The HTML template|Yes
+|```<content type="x-head">```|Scripts to inject into ```<head>```|No
+|```<content type="x-inject">```|Runs javascript before rendering, used for registering handlebars-helpers|No
+|```<content type="x-loading">```|HTML that will show insted of the default loading spinner|No
 
-- topic 1
-- topic 2
-- topic 3
 
-> Notice that better pictures and documentation will increase the sample usage and the value you are providing for others. Thanks for your submissions advance.
+### Example
+```HTML
+<!-- This will be hydrated and rendered to the screen -->
+<content type="x-template">
+  <div>
+    Hello Word!
+    <!-- If the data from the api contains a message property this will be rendered here -->
+    {{ message }}
+    <!-- Using injected Handlebars-helper to log message to console -->
+    {{log "Hello World!"}}
+  </div>
+</content>
 
-> Share your web part with others through Microsoft 365 Patterns and Practices program to get visibility and exposure. More details on the community, open-source projects and other activities from http://aka.ms/m365pnp.
+<!-- This will be shown while loading data from the API -->
+<content type="x-loading">
+  <div>Loading data, please wait</div>
+</content>
 
-## References
+<!-- This will be injected into the HTML head-element before rendering -->
+<content type="x-head">
+  <script>
+    alert('Hello world');
+  </script>
+</content>
 
-- [Getting started with SharePoint Framework](https://docs.microsoft.com/en-us/sharepoint/dev/spfx/set-up-your-developer-tenant)
-- [Building for Microsoft teams](https://docs.microsoft.com/en-us/sharepoint/dev/spfx/build-for-teams-overview)
-- [Use Microsoft Graph in your solution](https://docs.microsoft.com/en-us/sharepoint/dev/spfx/web-parts/get-started/using-microsoft-graph-apis)
-- [Publish SharePoint Framework applications to the Marketplace](https://docs.microsoft.com/en-us/sharepoint/dev/spfx/publish-to-marketplace-overview)
-- [Microsoft 365 Patterns and Practices](https://aka.ms/m365pnp) - Guidance, tooling, samples and open-source controls for your Microsoft 365 development
+<!-- This will be run by the WebPart before rendering -->
+<content type="x-inject">
+  <script>
+    Handlebars.registerHelper('log', function(message) {
+      console.log(message);
+    });
+  </script>
+</content>
+```
