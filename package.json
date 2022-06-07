@@ -1,0 +1,41 @@
+{
+  "name": "spfx-template",
+  "version": "1.0.0",
+  "private": true,
+  "main": "lib/index.js",
+  "scripts": {
+    "dev-build": "gulp bundle",
+    "build": "gulp bundle --ship && gulp package-solution --ship",
+    "clean": "gulp clean",
+    "serve": "gulp serve",
+    "package": "gulp package-solution --production",
+    "test": "gulp test"
+  },
+  "dependencies": {
+    "@azure/msal-browser": "^2.23.0",
+    "@microsoft/sp-core-library": "1.14.0",
+    "@microsoft/sp-lodash-subset": "1.14.0",
+    "@microsoft/sp-office-ui-fabric-core": "1.14.0",
+    "@microsoft/sp-property-pane": "1.14.0",
+    "@microsoft/sp-webpart-base": "1.14.0",
+    "axios": "^0.27.1",
+    "dompurify": "^2.3.7",
+    "handlebars": "^4.7.7",
+    "lodash": "^4.17.21",
+    "nanoid": "^3.3.3",
+    "office-ui-fabric-react": "7.174.1",
+    "react": "16.13.1",
+    "react-dom": "16.13.1"
+  },
+  "devDependencies": {
+    "@microsoft/rush-stack-compiler-3.9": "0.4.48",
+    "@microsoft/sp-build-web": "1.14.0",
+    "@microsoft/sp-module-interfaces": "1.14.0",
+    "@microsoft/sp-tslint-rules": "1.14.0",
+    "@types/react": "16.9.56",
+    "@types/react-dom": "16.9.8",
+    "@types/webpack-env": "1.13.1",
+    "gulp": "~4.0.2",
+    "handlebars-helper-moment": "^0.2.0"
+  }
+}
