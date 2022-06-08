@@ -22,7 +22,7 @@
     "dompurify": "2.3.8",
     "handlebars": "^4.7.7",
     "lodash": "^4.17.21",
-    "nanoid": "^3.3.3",
+    "nanoid": "3.3.4",
     "office-ui-fabric-react": "7.174.1",
     "react": "16.13.1",
     "react-dom": "16.13.1"
