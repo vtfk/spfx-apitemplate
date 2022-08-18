@@ -65,8 +65,13 @@ A template can consist of the following tags.
 ```
 
 ## Setup the project
+1. Install Node.js
+1. Install global dependencies ***npm install gulp-cli yo @microsoft/generator-sharepoint --global***
 1. run **npm i** to install dependencies
 1. run **gulp trust-dev-cert** to trust the dev certificate
+
+
+More information [here](https://docs.microsoft.com/en-us/sharepoint/dev/spfx/set-up-your-development-environment)
 
 ## Setup development environment
 1. Run **npm serve** to start the dev server
