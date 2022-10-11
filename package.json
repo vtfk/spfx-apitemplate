@@ -12,7 +12,7 @@
     "test": "gulp test"
   },
   "dependencies": {
-    "@azure/msal-browser": "^2.23.0",
+    "@azure/msal-browser": "2.30.0",
     "@microsoft/sp-core-library": "1.14.0",
     "@microsoft/sp-lodash-subset": "1.14.0",
     "@microsoft/sp-office-ui-fabric-core": "1.14.0",
