@@ -81,3 +81,7 @@ More information [here](https://docs.microsoft.com/en-us/sharepoint/dev/spfx/set
 
 After the build is done the webpart package will be located at */sharepoint/spfx-template.sppkg*<br>
 This file is what you install on SharePoint
+
+## Links
+
+- [handlebar-templates](https://github.com/vtfk/handlebar-templates)
