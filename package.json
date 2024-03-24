@@ -19,7 +19,7 @@
     "@microsoft/sp-property-pane": "1.14.0",
     "@microsoft/sp-webpart-base": "1.14.0",
     "axios": "0.27.2",
-    "dompurify": "2.3.8",
+    "dompurify": "2.4.9",
     "handlebars": "^4.7.7",
     "lodash": "^4.17.21",
     "nanoid": "3.3.4",
